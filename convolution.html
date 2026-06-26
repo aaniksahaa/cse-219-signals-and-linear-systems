@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🎧 Let's Listen to Convolutions · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+    --input:#2563eb; --system:#7c3aed; --output:#059669; --accent:#4f46e5;
+    --warn:#dc2626; --warnbg:#fef2f2; --okbg:#ecfdf5; --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+
+  /* Header */
+  header.app{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+  .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  .title p{margin:4px 0 0;color:var(--muted);font-size:14.5px;max-width:560px}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 22px;margin-bottom:18px}
+  .card h2{font-size:17px;margin:0 0 2px;display:flex;align-items:center;gap:10px}
+  .step{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;font-size:13px;font-weight:700;color:#fff}
+  .s1{background:var(--input)} .s2{background:var(--system)} .s3{background:var(--output)}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+  /* Buttons */
+  button.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:8px}
+  button.btn:hover{border-color:#cdd2e0;background:#fafbff}
+  button.btn:active{transform:translateY(1px)}
+  button.btn:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:#4338ca}
+  button.rec{color:var(--warn);border-color:#f3c9c9}
+  button.rec.on{background:var(--warn);color:#fff;border-color:var(--warn)}
+  button.play{background:var(--input);border-color:var(--input);color:#fff}
+  button.play:hover{color:var(--ink)}
+  .play.sys{background:var(--system);border-color:var(--system)}
+  .play.out{background:var(--output);border-color:var(--output)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  /* Source chooser */
+  .sources{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:.12s}
+  .chip:hover{border-color:#cdd2e0;background:#fafbff}
+  .chip .ic{font-size:20px;display:block;margin-bottom:4px}
+  .chip.on{border-color:var(--input);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+
+  /* Waveform */
+  .wave-wrap{position:relative;background:#fcfcfe;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%}
+  .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* IR selector */
+  select.ir{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font-size:14.5px;font-weight:600;background:#fff;color:var(--ink);cursor:pointer}
+  .formula{font-size:19px;background:#faf7ff;border:1px solid #ece4fb;border-radius:12px;padding:14px 16px;margin:14px 0;text-align:center;color:#3a2d63}
+  .formula sub,.formula sup{font-size:.7em}
+  .explain{font-size:14px;color:#374151;background:#f8fafc;border-left:3px solid var(--system);border-radius:0 10px 10px 0;padding:11px 14px;margin:12px 0}
+  .params{display:grid;gap:14px;margin:16px 0}
+  .param{display:grid;grid-template-columns:160px 1fr 78px;align-items:center;gap:12px}
+  .param label{font-size:13.5px;font-weight:600}
+  .param input[type=range]{width:100%;accent-color:var(--system)}
+  .param .val{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);text-align:right}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .badge{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;display:inline-flex;gap:6px;align-items:center}
+  .badge.ok{background:var(--okbg);color:#047857}
+  .badge.bad{background:var(--warnbg);color:var(--warn)}
+  .badge.neutral{background:#eef2ff;color:#4338ca}
+
+  .convolve-bar{text-align:center;margin:6px 0 22px}
+  .convolve-bar button{font-size:16px;padding:14px 30px;border-radius:14px}
+
+  .toggle{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none}
+  .switch{width:42px;height:24px;border-radius:999px;background:#d1d5db;position:relative;transition:.15s;flex:none}
+  .switch::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  input:checked + .switch{background:var(--output)}
+  input:checked + .switch::after{left:21px}
+  .toggle input{display:none}
+
+  .ab{display:inline-flex;background:#eef0f7;border-radius:10px;padding:3px}
+  .ab button{border:0;background:transparent;padding:7px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted)}
+  .ab button.on{background:#fff;box-shadow:var(--shadow);color:var(--ink)}
+
+  .warning{background:var(--warnbg);border:1px solid #f6caca;color:#991b1b;border-radius:12px;padding:11px 14px;font-size:13.5px;margin-top:14px;display:none}
+  .warning.show{display:block}
+  .note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:11px 14px;font-size:13.5px;margin-top:14px}
+
+  .status{font-size:13px;color:var(--muted);min-height:18px;margin-top:8px}
+  .hidden{display:none!important}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}.param{grid-template-columns:1fr;gap:6px}.param .val{text-align:left}}
+
+  details.help{margin-top:6px}
+  details.help summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--accent)}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:30px}
+  code.k{background:#eef2ff;padding:1px 6px;border-radius:6px;font-size:12.5px;color:#4338ca}
+</style>
+</head>
+<body>
+<div class="site">
+
+  <aside class="sidebar" id="siteSidebar"></aside>
+
+  <main class="content">
+  <div class="wrap">
+
+  <header class="app">
+    <div class="title">
+      <h1>🎧 Let's Listen to Convolutions</h1>
+      <p>Upload or record a sound, choose a system by its impulse response <b>h[n]</b>, and <b>hear</b> the convolution <b>y = x ∗ h</b>. Turning a formula into something you can listen to.</p>
+    </div>
+  </header>
+
+  <!-- STEP 1 : INPUT -->
+  <section class="card">
+    <h2><span class="step s1">1</span> Choose your input signal &nbsp;<span style="color:var(--input);font-weight:600">x[n]</span></h2>
+    <p class="sub">Pick a built-in sound, upload a file, or record with your microphone. Short clips (1–3 s) work best.</p>
+
+    <div class="sources" id="sampleChips"></div>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn" id="uploadBtn">📁 Upload audio</button>
+      <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.webm,.ogg" class="hidden" />
+      <button class="btn rec" id="recBtn">⏺ Record</button>
+      <span class="status" id="inStatus"></span>
+    </div>
+
+    <div class="wave-wrap"><canvas id="canvasX" height="150"></canvas></div>
+    <div class="meta">
+      <span>Duration <b id="xDur">—</b></span>
+      <span>Sample rate <b id="xSr">—</b></span>
+      <span>Samples <b id="xLen">—</b></span>
+      <span>Peak <b id="xPeak">—</b></span>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn play" id="playX" disabled>▶ Play input</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 : SYSTEM -->
+  <section class="card">
+    <h2><span class="step s2">2</span> Choose the system &nbsp;<span style="color:var(--system);font-weight:600">h[n]</span></h2>
+    <p class="sub">The impulse response <b>is</b> the system. Convolution tells you how that system acts on any input.</p>
+
+    <select class="ir" id="irSelect"></select>
+    <div class="formula" id="irFormula"></div>
+    <div class="explain" id="irExplain"></div>
+    <div class="params" id="irParams"></div>
+
+    <div class="grid2" style="align-items:start">
+      <div>
+        <div class="wave-wrap"><canvas id="canvasH" height="150"></canvas></div>
+        <div class="meta">
+          <span>Σ|h[n]| <b id="hSum">—</b></span>
+          <span>Length <b id="hLen">—</b></span>
+          <span>Taps <b id="hTaps">—</b></span>
+        </div>
+      </div>
+      <div>
+        <div class="badges" id="irBadges"></div>
+        <div id="stabilityNote" class="note" style="margin-top:14px"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn play sys" id="playH">▶ Listen to h[n]</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONVOLVE -->
+  <div class="convolve-bar">
+    <button class="btn primary" id="convolveBtn" disabled>∗ &nbsp;Convolve &amp; Listen</button>
+    <div class="status" id="convStatus" style="text-align:center"></div>
+  </div>
+
+  <!-- STEP 3 : OUTPUT -->
+  <section class="card">
+    <h2><span class="step s3">3</span> Listen &amp; compare &nbsp;<span style="color:var(--output);font-weight:600">y[n] = x[n] ∗ h[n]</span></h2>
+    <p class="sub">Switch between the input and the convolved output — that's where you hear what the system did.</p>
+
+    <div class="wave-wrap"><canvas id="canvasY" height="150"></canvas></div>
+    <div class="meta">
+      <span>Duration <b id="yDur">—</b></span>
+      <span>Output peak <b id="yPeak">—</b></span>
+    </div>
+
+    <div class="row" style="margin:16px 0 4px">
+      <span class="ab" id="abToggle">
+        <button data-ab="x" class="on">Input</button>
+        <button data-ab="y">Output</button>
+      </span>
+      <button class="btn play out" id="playSel" disabled>▶ Play</button>
+      <button class="btn" id="stopBtn" disabled>⏹ Stop</button>
+      <button class="btn" id="downloadBtn" disabled>⬇ Download WAV</button>
+    </div>
+
+    <div class="warning" id="clipWarn">⚠ The output exceeds ±1.0 and will clip / distort. Turn on normalization, or that distortion <i>is</i> the teaching point (e.g. an unstable system).</div>
+
+    <div class="params" style="margin-top:18px">
+      <div class="param">
+        <label>Output gain</label>
+        <input type="range" id="gain" min="0" max="2" step="0.01" value="1" />
+        <span class="val" id="gainVal">1.00×</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <label class="toggle">
+        <input type="checkbox" id="normChk" checked />
+        <span class="switch"></span>
+        Normalize for safe listening
+      </label>
+      <span class="status">Off = “preserve mathematical amplitude” (may clip).</span>
+    </div>
+  </section>
+
+  <!-- <footer>
+    LTI Audio Playground · for CSE 219 Signals &amp; Linear Systems · runs entirely in your browser, no data leaves your machine.
+  </footer> -->
+  </div>
+  </main>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   LTI Audio Playground — single-file, no dependencies.
+   Convolution is computed with an OfflineAudioContext +
+   ConvolverNode (normalize=false) => exact linear y = x*h.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+
+/* ---------- global audio state ---------- */
+let audioCtx = null;                 // playback context (created on first gesture)
+let input = null;                    // {data:Float32Array, sr:Number, name:String}
+let outputData = null;               // Float32Array of processed y (post gain/normalize)
+let activeSource = null;             // currently playing BufferSource
+let abSel = 'x';
+
+function ctx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+/* ====================================================================
+   IMPULSE RESPONSE DEFINITIONS
+   each: id, name, formula(HTML), explain, params, gen(sr,p), causal,
+   stability(p) -> {summable:Bool, note:String}
+   ==================================================================== */
+// Two systems, both built from a train of equally-spaced impulses (echoes).
+//  • Unit Step    : every echo equally loud  → the "repeated equal echoes" idea.
+//  • Exp. Decay   : each echo a fraction α weaker → the echoes fade away.
+const UNIT_ALPHA = 0.99;   // hidden roll-off for the unit-step train (kept out of the UI)
+
+const IRS = [
+  {
+    id:'expdecay', name:'Exponential Decay — fading echoes', causal:true,
+    formula:'h[n] = δ[n] + α·δ[n−D] + α²·δ[n−2D] + ⋯',
+    explain:'The sound repeats every D milliseconds, but each echo is a fraction α of the one before, so it fades away — just like echoes dying out in a room. Because α < 1, the tail always decays, so the system is stable.',
+    params:[
+      {key:'D',label:'Echo spacing D (ms)',min:60,max:800,step:1,val:250,fmt:v=>v+' ms'},
+      {key:'a',label:'Decay α',min:0.1,max:0.95,step:0.01,val:0.6,fmt:v=>v.toFixed(2)},
+      {key:'M',label:'Number of echoes',min:2,max:30,step:1,val:12,fmt:v=>v}
+    ],
+    gen:(sr,p)=>{const Ds=Math.round(p.D/1000*sr);const a=new Float32Array(p.M*Ds+1);for(let m=0;m<=p.M;m++)a[m*Ds]=Math.pow(p.a,m);return a;},
+    stability:p=>{const s=(1-Math.pow(p.a,p.M+1))/(1-p.a);return{summable:true,note:`Geometric decay (α &lt; 1): Σ|h[n]| → 1/(1−α) = ${(1/(1-p.a)).toFixed(2)} &lt; ∞ → <b>BIBO stable</b>. The echoes die out.`};}
+  },
+  {
+    id:'unitstep', name:'Unit Step — equal repeated echoes', causal:true,
+    formula:'h[n] = δ[n] + δ[n−D] + δ[n−2D] + δ[n−3D] + ⋯',
+    explain:'The discrete-step idea: the sound repeats at a fixed spacing D, and every echo is equally loud. In principle this is an endless sum of equal impulses — it never settles down, so it is not absolutely summable and therefore not BIBO stable. We play a long but finite train so you can hear it safely.',
+    params:[
+      {key:'D',label:'Echo spacing D (ms)',min:60,max:800,step:1,val:250,fmt:v=>v+' ms'},
+      {key:'M',label:'Number of echoes',min:2,max:30,step:1,val:12,fmt:v=>v}
+    ],
+    gen:(sr,p)=>{const Ds=Math.round(p.D/1000*sr);const a=new Float32Array(p.M*Ds+1);for(let m=0;m<=p.M;m++)a[m*Ds]=Math.pow(UNIT_ALPHA,m);return a;},
+    stability:p=>({summable:false,note:`Equal repeated impulses: as the number of echoes grows, Σ|h[n]| keeps growing without bound → in the limit it is <b>NOT BIBO stable</b>. Shown here with ${p.M} echoes for safe listening.`})
+  }
+];
+
+let curIR = IRS[0];
+const irParamVals = {}; // id -> {key:val}
+IRS.forEach(ir=>{ irParamVals[ir.id]={}; ir.params.forEach(p=>irParamVals[ir.id][p.key]=p.val); });
+
+/* current h: returns {data:Float32Array, center:Int} */
+function buildH(){
+  const sr = input ? input.sr : (audioCtx? audioCtx.sampleRate : 44100);
+  const r = curIR.gen(sr, irParamVals[curIR.id]);
+  if(r instanceof Float32Array) return {data:r, center:0};
+  return r; // {data, center}
+}
+
+/* ====================================================================
+   SAMPLE SOUND SYNTHESIS  (no external files needed)
+   ==================================================================== */
+const SAMPLES = [
+  {id:'click', ic:'👆', label:'Click', make:sr=>{const a=new Float32Array(Math.round(sr*0.5));a[0]=0.95;return a;}},
+  {id:'beep',  ic:'🔔', label:'Beep',  make:sr=>{const n=Math.round(sr*0.35);const a=new Float32Array(n);for(let i=0;i<n;i++){const e=Math.min(1,i/(sr*0.01))*Math.exp(-i/(sr*0.12));a[i]=Math.sin(2*Math.PI*660*i/sr)*e*0.8;}return a;}},
+  {id:'clap',  ic:'👏', label:'Clap',  make:sr=>{const n=Math.round(sr*0.25);const a=new Float32Array(n);let s=7;const rnd=()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff*2-1;};for(let i=0;i<n;i++)a[i]=rnd()*Math.exp(-i/(sr*0.02))*0.9;return a;}},
+  {id:'chirp', ic:'📈', label:'Chirp',  make:sr=>{const n=Math.round(sr*1.0);const a=new Float32Array(n);for(let i=0;i<n;i++){const t=i/sr;const fr=300+ (2200-300)*t/1.0;const ph=2*Math.PI*(300*t+(2200-300)*t*t/(2*1.0));const e=Math.min(1,i/(sr*0.01))*Math.min(1,(n-i)/(sr*0.02));a[i]=Math.sin(ph)*e*0.7;}return a;}},
+  {id:'pluck', ic:'🎸', label:'Pluck', make:sr=>{const n=Math.round(sr*0.6);const a=new Float32Array(n);for(let i=0;i<n;i++){const e=Math.exp(-i/(sr*0.18));a[i]=(Math.sin(2*Math.PI*220*i/sr)+0.5*Math.sin(2*Math.PI*440*i/sr))*e*0.5;}return a;}},
+];
+
+function loadSample(s){
+  const sr = (audioCtx? audioCtx.sampleRate : 44100);
+  setInput(s.make(sr), sr, s.label);
+  highlightChip(s.id);
+}
+
+/* ====================================================================
+   INPUT HANDLING
+   ==================================================================== */
+function setInput(data, sr, name){
+  // normalize input peak to a comfortable level for fair comparison
+  let pk=0; for(const v of data) pk=Math.max(pk,Math.abs(v));
+  if(pk>0 && pk!==1){ /* keep as-is unless silent */ }
+  input = {data, sr, name};
+  drawWave('canvasX', data, 0, '#2563eb');
+  $('xDur').textContent = (data.length/sr).toFixed(2)+' s';
+  $('xSr').textContent = sr.toLocaleString()+' Hz';
+  $('xLen').textContent = data.length.toLocaleString();
+  $('xPeak').textContent = pk.toFixed(3);
+  $('playX').disabled=false;
+  $('convolveBtn').disabled=false;
+  $('inStatus').textContent='Loaded: '+name;
+  outputData=null; lastWet=null; $('downloadBtn').disabled=true; $('playSel').disabled=true;
+  drawWave('canvasY', new Float32Array(8), 0, '#059669');
+  $('yDur').textContent='—'; $('yPeak').textContent='—';
+  refreshH();
+}
+
+function highlightChip(id){ document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.id===id)); }
+
+async function decodeFile(file){
+  $('inStatus').textContent='Decoding…';
+  try{
+    const buf = await file.arrayBuffer();
+    const ac = ctx();
+    const ab = await ac.decodeAudioData(buf);
+    // downmix to mono
+    const mono = new Float32Array(ab.length);
+    for(let ch=0; ch<ab.numberOfChannels; ch++){
+      const d=ab.getChannelData(ch);
+      for(let i=0;i<ab.length;i++) mono[i]+=d[i]/ab.numberOfChannels;
+    }
+    highlightChip(null);
+    setInput(mono, ab.sampleRate, file.name);
+  }catch(e){ $('inStatus').textContent='Could not decode that file: '+e.message; }
+}
+
+/* ---- microphone recording ---- */
+let mediaRec=null, recChunks=[], recTimer=null, recStart=0;
+async function toggleRecord(){
+  if(mediaRec && mediaRec.state==='recording'){ mediaRec.stop(); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    $('inStatus').textContent='Microphone not available in this browser.'; return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRec = new MediaRecorder(stream);
+    recChunks=[];
+    mediaRec.ondataavailable=e=>{ if(e.data.size) recChunks.push(e.data); };
+    mediaRec.onstop=async()=>{
+      clearInterval(recTimer); $('recBtn').classList.remove('on'); $('recBtn').textContent='⏺ Record';
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(recChunks,{type:mediaRec.mimeType||'audio/webm'});
+      await decodeFile(blob);
+    };
+    mediaRec.start();
+    recStart=Date.now();
+    $('recBtn').classList.add('on');
+    recTimer=setInterval(()=>{$('recBtn').textContent='⏹ Stop  '+((Date.now()-recStart)/1000).toFixed(1)+'s';},100);
+  }catch(e){
+    $('inStatus').textContent = location.protocol==='file:'
+      ? 'Mic needs a secure context. Run a local server (see README) — file:// blocks the microphone.'
+      : 'Microphone permission denied.';
+  }
+}
+
+/* ====================================================================
+   SYSTEM (h) PANEL
+   ==================================================================== */
+function buildIRSelect(){
+  const sel=$('irSelect'); sel.innerHTML='';
+  IRS.forEach(ir=>{
+    const o=document.createElement('option'); o.value=ir.id; o.textContent=ir.name; sel.appendChild(o);
+  });
+  sel.value=curIR.id;
+}
+
+function buildParams(){
+  const box=$('irParams'); box.innerHTML='';
+  curIR.params.forEach(p=>{
+    const row=document.createElement('div'); row.className='param';
+    if(p.type==='bool'){
+      row.innerHTML=`<label>${p.label}</label>
+        <label class="toggle" style="grid-column:2/4"><input type="checkbox" ${irParamVals[curIR.id][p.key]?'checked':''}><span class="switch"></span></label>`;
+      row.querySelector('input').addEventListener('change',e=>{irParamVals[curIR.id][p.key]=e.target.checked?1:0;refreshH();});
+    }else{
+      row.innerHTML=`<label>${p.label}</label>
+        <input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${irParamVals[curIR.id][p.key]}">
+        <span class="val">${p.fmt(irParamVals[curIR.id][p.key])}</span>`;
+      const r=row.querySelector('input'), v=row.querySelector('.val');
+      r.addEventListener('input',e=>{const val=parseFloat(e.target.value);irParamVals[curIR.id][p.key]=val;v.textContent=p.fmt(val);refreshH();});
+    }
+    box.appendChild(row);
+  });
+}
+
+function refreshH(){
+  $('irFormula').innerHTML = curIR.formula;
+  $('irExplain').textContent = curIR.explain;
+  const {data, center} = buildH();
+  drawWave('canvasH', data, center, '#7c3aed', true);
+  let sum=0,taps=0; for(const v of data){sum+=Math.abs(v); if(Math.abs(v)>1e-6)taps++;}
+  const sr = input?input.sr:(audioCtx?audioCtx.sampleRate:44100);
+  $('hSum').textContent = curIR.stability(irParamVals[curIR.id]).summable ? sum.toFixed(2) : sum.toFixed(0)+' ↗';
+  $('hLen').textContent = (data.length/sr*1000).toFixed(0)+' ms';
+  $('hTaps').textContent = taps>200? '≈dense' : taps;
+  // badges
+  const st=curIR.stability(irParamVals[curIR.id]);
+  const badges=$('irBadges'); badges.innerHTML='';
+  badges.innerHTML += st.summable
+    ? '<span class="badge ok">✓ BIBO stable</span>'
+    : '<span class="badge bad">✕ Unstable (Σ|h| = ∞)</span>';
+  badges.innerHTML += curIR.causal
+    ? '<span class="badge ok">✓ Causal</span>'
+    : '<span class="badge bad">✕ Noncausal</span>';
+  badges.innerHTML += `<span class="badge neutral">${taps>200?'dense memory':'sparse · '+taps+' taps'}</span>`;
+  $('stabilityNote').innerHTML = st.note;
+}
+
+/* ====================================================================
+   WAVEFORM / STEM DRAWING
+   ==================================================================== */
+function fitCanvas(cv){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth||cv.parentElement.clientWidth;
+  const h=parseInt(cv.getAttribute('height'));
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  return {g,w,h};
+}
+function drawWave(id, data, center, color, stem=false){
+  const cv=$(id); const {g,w,h}=fitCanvas(cv);
+  g.clearRect(0,0,w,h);
+  const mid=h/2;
+  // peak for scaling
+  let pk=0; for(const v of data) pk=Math.max(pk,Math.abs(v)); if(pk===0)pk=1;
+  const pad=8, plotW=w-2*pad;
+  // zero axis
+  g.strokeStyle='#e6e8ef'; g.lineWidth=1; g.beginPath(); g.moveTo(pad,mid); g.lineTo(w-pad,mid); g.stroke();
+  // n=0 / center marker
+  if(center>0){
+    const x0=pad+ (center/data.length)*plotW;
+    g.strokeStyle='#cbb6f0'; g.setLineDash([4,4]); g.beginPath(); g.moveTo(x0,4); g.lineTo(x0,h-4); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#7c3aed'; g.font='11px system-ui'; g.fillText('n=0',x0+3,14);
+  }
+  // decide stem vs filled line: stem if few taps
+  let taps=0; for(const v of data){ if(Math.abs(v)>1e-6)taps++; if(taps>120)break; }
+  if(stem && taps<=120 && data.length<200000){
+    g.strokeStyle=color; g.fillStyle=color; g.lineWidth=2;
+    for(let i=0;i<data.length;i++){
+      if(Math.abs(data[i])<1e-6)continue;
+      const x=pad+(i/Math.max(1,data.length-1))*plotW;
+      const y=mid-(data[i]/pk)*(mid-8);
+      g.beginPath(); g.moveTo(x,mid); g.lineTo(x,y); g.stroke();
+      g.beginPath(); g.arc(x,y,2.6,0,7); g.fill();
+    }
+  }else{
+    // min/max envelope per pixel column
+    g.fillStyle=color+'33'; g.strokeStyle=color; g.lineWidth=1.2;
+    g.beginPath();
+    const N=data.length;
+    for(let px=0;px<plotW;px++){
+      const a=Math.floor(px/plotW*N), b=Math.max(a+1,Math.floor((px+1)/plotW*N));
+      let mn=1e9,mx=-1e9; for(let i=a;i<b && i<N;i++){const v=data[i]; if(v<mn)mn=v; if(v>mx)mx=v;}
+      if(mn===1e9){mn=mx=0;}
+      const x=pad+px;
+      const yT=mid-(mx/pk)*(mid-8), yB=mid-(mn/pk)*(mid-8);
+      if(px===0)g.moveTo(x,yT);
+      g.lineTo(x,yT);
+      if(yB-yT>0.5){g.moveTo(x,yB);}
+    }
+    // filled body
+    g.beginPath();
+    for(let px=0;px<plotW;px++){
+      const a=Math.floor(px/plotW*N), b=Math.max(a+1,Math.floor((px+1)/plotW*N));
+      let mx=-1e9; for(let i=a;i<b&&i<N;i++){if(data[i]>mx)mx=data[i];}
+      const x=pad+px, y=mid-(mx/pk)*(mid-8);
+      px===0?g.moveTo(x,y):g.lineTo(x,y);
+    }
+    for(let px=plotW-1;px>=0;px--){
+      const a=Math.floor(px/plotW*N), b=Math.max(a+1,Math.floor((px+1)/plotW*N));
+      let mn=1e9; for(let i=a;i<b&&i<N;i++){if(data[i]<mn)mn=data[i];}
+      if(mn===1e9)mn=0;
+      const x=pad+px, y=mid-(mn/pk)*(mid-8);
+      g.lineTo(x,y);
+    }
+    g.closePath(); g.fill();
+  }
+}
+
+/* ====================================================================
+   CONVOLUTION  (OfflineAudioContext + ConvolverNode, normalize=false)
+   ==================================================================== */
+async function convolveExact(x, hData, sr){
+  const len = x.length + hData.length;
+  const oc = new OfflineAudioContext(1, len, sr);
+  const xb = oc.createBuffer(1, x.length, sr); xb.copyToChannel(x,0);
+  const hb = oc.createBuffer(1, hData.length, sr); hb.copyToChannel(hData,0);
+  const src = oc.createBufferSource(); src.buffer=xb;
+  const cv = oc.createConvolver(); cv.normalize=false; cv.buffer=hb;
+  src.connect(cv); cv.connect(oc.destination); src.start();
+  const out = await oc.startRendering();
+  return out.getChannelData(0);
+}
+
+async function doConvolve(){
+  if(!input) return;
+  $('convStatus').textContent='Convolving…';
+  $('convolveBtn').disabled=true;
+  try{
+    const {data:hData} = buildH();
+    const sr = input.sr;
+    ctx(); // ensure playback context for sample rate consistency on samples
+    const wet = await convolveExact(input.data, hData, sr);
+    processOutput(wet, sr);
+    selectAB('y');               // focus the output…
+    playSelected();              // …and play it once automatically
+    $('convStatus').textContent='Done — playing the output. Σ length '+wet.length.toLocaleString()+' samples ('+(wet.length/sr).toFixed(2)+' s).';
+  }catch(e){
+    $('convStatus').textContent='Convolution failed: '+e.message;
+  }
+  $('convolveBtn').disabled=false;
+}
+
+let lastWet=null, lastSr=44100;
+function processOutput(wet, sr){
+  if(wet) { lastWet=wet; lastSr=sr; }
+  wet=lastWet; sr=lastSr; if(!wet)return;
+  const gain=parseFloat($('gain').value);
+  const norm=$('normChk').checked;
+  const out=new Float32Array(wet.length);
+  for(let i=0;i<wet.length;i++) out[i]=wet[i];
+  // peak BEFORE normalize/gain (mathematical amplitude)
+  let pk=0; for(const v of out) pk=Math.max(pk,Math.abs(v));
+  let scale=gain;
+  if(norm && pk>0) scale = gain*0.99/pk;
+  for(let i=0;i<out.length;i++) out[i]*=scale;
+  let pk2=0; for(const v of out) pk2=Math.max(pk2,Math.abs(v));
+  outputData=out;
+  drawWave('canvasY', out, 0, '#059669');
+  $('yDur').textContent=(out.length/sr).toFixed(2)+' s';
+  $('yPeak').textContent=pk2.toFixed(3)+(norm?'':' (raw ×'+gain+')');
+  $('clipWarn').classList.toggle('show', pk2>1.0001);
+  $('playSel').disabled=false; $('downloadBtn').disabled=false; $('stopBtn').disabled=false;
+}
+
+/* ====================================================================
+   PLAYBACK
+   ==================================================================== */
+function stopPlay(){ if(activeSource){try{activeSource.stop();}catch(e){} activeSource=null;} }
+function playFloat(data, sr){
+  stopPlay();
+  const ac=ctx();
+  const b=ac.createBuffer(1, data.length, sr);
+  b.copyToChannel(data,0);
+  const s=ac.createBufferSource(); s.buffer=b; s.connect(ac.destination); s.start();
+  activeSource=s; s.onended=()=>{if(activeSource===s)activeSource=null;};
+}
+function playInput(){ if(input) playFloat(input.data, input.sr); }
+function playH(){ const {data}=buildH(); // normalize for audible listening
+  let pk=0;for(const v of data)pk=Math.max(pk,Math.abs(v));const n=new Float32Array(data.length);const s=pk>0?0.9/pk:1;for(let i=0;i<data.length;i++)n[i]=data[i]*s;
+  playFloat(n, input?input.sr:(audioCtx?audioCtx.sampleRate:44100)); }
+function playSelected(){
+  if(abSel==='x') playInput();
+  else if(outputData) playFloat(outputData, lastSr);
+}
+function selectAB(which){
+  abSel=which;
+  $('abToggle').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.ab===which));
+}
+
+/* ====================================================================
+   WAV EXPORT
+   ==================================================================== */
+function encodeWAV(data, sr){
+  const n=data.length, buf=new ArrayBuffer(44+n*2), v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF'); v.setUint32(4,36+n*2,true); ws(8,'WAVE'); ws(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  ws(36,'data'); v.setUint32(40,n*2,true);
+  let o=44; for(let i=0;i<n;i++){let s=Math.max(-1,Math.min(1,data[i]));v.setInt16(o,s<0?s*0x8000:s*0x7fff,true);o+=2;}
+  return new Blob([buf],{type:'audio/wav'});
+}
+function download(){
+  if(!outputData)return;
+  const url=URL.createObjectURL(encodeWAV(outputData,lastSr));
+  const a=document.createElement('a'); a.href=url; a.download='convolved_'+curIR.id+'.wav'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+
+/* ====================================================================
+   WIRING
+   ==================================================================== */
+function init(){
+  // sample chips
+  const box=$('sampleChips');
+  SAMPLES.forEach(s=>{
+    const c=document.createElement('div'); c.className='chip'; c.dataset.id=s.id;
+    c.innerHTML=`<span class="ic">${s.ic}</span>${s.label}`;
+    c.addEventListener('click',()=>loadSample(s));
+    box.appendChild(c);
+  });
+
+  buildIRSelect(); buildParams(); refreshH();
+
+  $('irSelect').addEventListener('change',e=>{curIR=IRS.find(ir=>ir.id===e.target.value);buildParams();refreshH();});
+  $('uploadBtn').addEventListener('click',()=>$('fileInput').click());
+  $('fileInput').addEventListener('change',e=>{if(e.target.files[0])decodeFile(e.target.files[0]);});
+  $('recBtn').addEventListener('click',toggleRecord);
+  $('playX').addEventListener('click',playInput);
+  $('playH').addEventListener('click',playH);
+  $('convolveBtn').addEventListener('click',doConvolve);
+  $('playSel').addEventListener('click',playSelected);
+  $('stopBtn').addEventListener('click',stopPlay);
+  $('downloadBtn').addEventListener('click',download);
+
+  // output gain re-processes from cached convolution
+  $('gain').addEventListener('input',()=>{
+    $('gainVal').textContent=parseFloat($('gain').value).toFixed(2)+'×';
+    if(lastWet)processOutput(null,lastSr);
+  });
+  $('normChk').addEventListener('change',()=>{if(lastWet)processOutput(null,lastSr);});
+
+  // A/B input vs output
+  $('abToggle').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    selectAB(b.dataset.ab); playSelected();
+  }));
+
+  // redraw on resize
+  window.addEventListener('resize',()=>{
+    if(input)drawWave('canvasX',input.data,0,'#2563eb');
+    refreshH();
+    if(outputData)drawWave('canvasY',outputData,0,'#059669');
+  });
+
+  // load a friendly default so the page is alive immediately
+  loadSample(SAMPLES[0]);
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

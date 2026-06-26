@@ -1,0 +1,75 @@
+/* ====================================================================
+   Course-site shell — shared sidebar + layout for all demo pages.
+   Kept intentionally calm and neutral so the demo content stays the focus.
+   ==================================================================== */
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+  --accent:#4f46e5; --accent-soft:#eef2ff;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; line-height:1.5;
+}
+
+/* layout */
+.site{display:flex;min-height:100vh}
+.content{flex:1;min-width:0}
+
+/* sidebar */
+.sidebar{
+  width:252px;flex:none;background:#fff;border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+  padding:20px 14px;gap:2px;
+}
+.brand{display:block;text-decoration:none;padding:6px 10px 12px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.brand .code{font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.brand .name{font-size:12.5px;color:var(--muted);margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav .group{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#9aa1b1;font-weight:700;margin:14px 10px 4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;font-size:14px;font-weight:600;color:#374151;text-decoration:none;transition:.12s}
+.nav a:hover{background:#f5f6fb}
+.nav a.active{background:var(--accent-soft);color:var(--accent)}
+.nav a.disabled{color:#b7bcc9;cursor:default}
+.nav a.disabled:hover{background:transparent}
+.nav a .ic{width:20px;text-align:center;font-size:15px;flex:none}
+.nav a small{font-weight:600;color:#aab0bd;margin-left:auto;font-size:11px}
+.side-foot{margin-top:auto;font-size:11.5px;color:var(--muted);padding:12px 10px 2px;border-top:1px solid var(--line)}
+
+/* home page */
+.content-inner{max-width:1000px;margin:0 auto;padding:48px 28px 80px}
+.hero{margin-bottom:34px}
+.hero .eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+.hero h1{font-size:34px;letter-spacing:-.025em;margin:8px 0 10px}
+.hero .lead{font-size:16.5px;color:#4b5563;max-width:640px;margin:0}
+.demos{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.demo-card{
+  display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--shadow);padding:22px;text-decoration:none;color:inherit;transition:.14s;
+}
+a.demo-card:hover{border-color:#c9cdfb;box-shadow:0 2px 4px rgba(16,24,40,.06),0 14px 32px rgba(79,70,229,.10);transform:translateY(-2px)}
+.demo-card .demo-emoji{font-size:30px;margin-bottom:12px}
+.demo-card h3{font-size:17px;margin:0 0 6px;letter-spacing:-.01em}
+.demo-card p{font-size:14px;color:#5b6472;margin:0 0 16px;flex:1}
+.demo-card .go{font-size:13.5px;font-weight:700;color:var(--accent)}
+.demo-card.soon{opacity:.7}
+.demo-card .badge-soon{font-size:11.5px;font-weight:700;color:#8a90a0;background:#f1f2f7;border-radius:999px;padding:4px 10px;align-self:flex-start}
+
+/* mobile: sidebar becomes a horizontal top bar */
+@media(max-width:860px){
+  .site{flex-direction:column}
+  .sidebar{
+    width:auto;height:auto;position:sticky;top:0;z-index:20;flex-direction:row;align-items:center;
+    overflow-x:auto;padding:10px 12px;gap:8px;border-right:0;border-bottom:1px solid var(--line);
+  }
+  .brand{border-bottom:0;padding:0 8px 0 4px;margin-bottom:0;flex:none}
+  .brand .name{display:none}
+  .nav{flex-direction:row;gap:4px}
+  .nav .group,.side-foot{display:none}
+  .nav a{white-space:nowrap;padding:8px 10px}
+  .nav a small{display:none}
+  .content-inner{padding:32px 20px 60px}
+  .hero h1{font-size:27px}
+}

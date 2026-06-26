@@ -1,0 +1,4605 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% =========================================================
+% CSE 219: Signals and Linear Systems
+% Introductory slides
+% Compile with: pdflatex cse219_intro_slides.tex
+% =========================================================
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{pgfplots}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{fontawesome5}
+\usepackage{microtype}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{ragged2e}
+
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric,calc,decorations.pathreplacing}
+
+\usepackage{animate}
+
+
+
+
+% =========================================================
+% SIGNAL-TRANSFORMATION DRAWING HELPERS
+% Put this in the PREAMBLE, before \begin{document}.
+% =========================================================
+
+\newcommand{\IrregularCTPath}{%
+  (-1.80,0.15)
+  .. controls (-1.55,0.70) and (-1.18,0.82) .. (-0.82,0.58)
+  .. controls (-0.58,0.38) and (-0.47,-0.38) .. (-0.08,-0.32)
+  .. controls (0.12,-0.28) and (0.22,0.78) .. (0.55,0.95)
+  .. controls (0.86,0.60) and (1.08,0.20) .. (1.55,0.18)
+  .. controls (1.78,0.18) and (1.90,-0.16) .. (2.02,-0.03)
+}
+
+\newcommand{\DrawDTSequence}[2]{%
+  \foreach \k/\v in {
+    -3/0.30,
+    -2/0.85,
+    -1/0.45,
+     0/-0.65,
+     1/-0.20,
+     2/0.70,
+     3/0.30
+  }{%
+    \draw[very thick,#2] ({\k+#1},0) -- ({\k+#1},\v);
+    \fill[#2] ({\k+#1},\v) circle (2.1pt);
+    \fill[black] ({\k+#1},0) circle (0.9pt);
+  }%
+}
+
+
+
+% Dense discrete-time sequence:
+% #1 = integer shift, #2 = stem color
+\newcommand{\DrawDenseDTSequence}[2]{%
+  \foreach \k/\v in {
+    -7/0.18,
+    -6/0.36,
+    -5/0.58,
+    -4/0.84,
+    -3/0.67,
+    -2/0.28,
+    -1/-0.18,
+     0/-0.62,
+     1/-0.48,
+     2/-0.12,
+     3/0.35,
+     4/0.72,
+     5/0.89,
+     6/0.70,
+     7/0.42
+  }{%
+    \draw[very thick,#2] ({\k+#1},0) -- ({\k+#1},\v);
+    \fill[#2] ({\k+#1},\v) circle (1.55pt);
+    \fill[black] ({\k+#1},0) circle (0.75pt);
+  }%
+}
+
+
+
+
+
+
+
+
+
+% =========================================================
+% DESIGN CONTROL PANEL
+% =========================================================
+
+% -------------------- color palette --------------------
+\definecolor{CourseBlue}{HTML}{2563EB}
+\definecolor{CourseNavy}{HTML}{0F172A}
+\definecolor{CourseSky}{HTML}{EAF2FF}
+\definecolor{CourseGreen}{HTML}{059669}
+\definecolor{CourseMint}{HTML}{E8FFF5}
+\definecolor{CourseOrange}{HTML}{EA580C}
+\definecolor{CourseMaroon}{HTML}{7A0000}
+\definecolor{CourseRed}{HTML}{DC2626}
+
+\definecolor{CourseGray}{HTML}{475569}
+\definecolor{CourseLight}{HTML}{F8FAFC}
+\definecolor{CourseLine}{HTML}{CBD5E1}
+\definecolor{CourseSoft}{HTML}{F1F5F9}
+
+\colorlet{SlideTitleColor}{CourseNavy}
+\colorlet{SlideSubtitleColor}{CourseGray}
+\colorlet{FrameTitleColor}{CourseMaroon}
+\colorlet{AccentColor}{CourseBlue}
+\colorlet{MutedColor}{CourseGray}
+\colorlet{RuleColor}{CourseLine}
+\colorlet{FooterTextColor}{CourseGray}
+
+\colorlet{InfoBoxBg}{CourseSky}
+\colorlet{InfoBoxDraw}{CourseBlue!28}
+\colorlet{SuccessBoxBg}{CourseMint}
+\colorlet{SuccessBoxDraw}{CourseGreen!30}
+\colorlet{NeutralBoxBg}{CourseLight}
+\colorlet{NeutralBoxDraw}{CourseLine}
+\colorlet{WarningBoxBg}{CourseOrange!8}
+\colorlet{WarningBoxDraw}{CourseOrange!35}
+
+% -------------------- aliases used by cards/boxes --------------------
+\colorlet{ThemeBlue}{CourseBlue}
+\colorlet{ThemeGreen}{CourseGreen}
+\colorlet{ThemeOrange}{CourseOrange}
+\colorlet{ThemeNavy}{CourseNavy}
+\colorlet{ThemeMaroon}{CourseMaroon}
+\colorlet{ThemeBlueLight}{CourseSky}
+\colorlet{ThemeGreenLight}{CourseMint}
+\colorlet{ThemeOrangeLight}{CourseOrange!8}
+\colorlet{ThemeLight}{CourseLight}
+\colorlet{ThemeLine}{CourseLine}
+\colorlet{ThemeGray}{CourseGray}
+
+\colorlet{ThemeRed}{CourseRed}
+
+% -------------------- typography controls --------------------
+\newcommand{\DeckMainFont}{\sffamily}
+\newcommand{\DeckTitleSize}{\LARGE}
+\newcommand{\DeckSubtitleSize}{\normalsize}
+\newcommand{\DeckAuthorSize}{\normalsize}
+\newcommand{\DeckInstituteSize}{\small}
+\newcommand{\DeckDateSize}{\small}
+
+\newcommand{\FrameTitleSize}{\Large}
+\newcommand{\FrameTitleSeries}{\bfseries}
+\newcommand{\FrameTitleTopSpace}{0.05em}
+\newcommand{\FrameTitleToRuleSpace}{0.25em}
+\newcommand{\FrameTitleRuleThickness}{0.45pt}
+\newcommand{\FrameTitleAfterRuleSpace}{2pt}
+
+\newcommand{\BodyTextSize}{\normalsize}
+\newcommand{\SmallTextSize}{\scriptsize}
+\newcommand{\FooterTextSize}{\scriptsize}
+
+% -------------------- global beamer setup --------------------
+\setbeamercolor{normal text}{fg=CourseNavy,bg=white}
+\setbeamercolor{structure}{fg=AccentColor}
+
+\setbeamercolor{title}{fg=SlideTitleColor}
+\setbeamercolor{subtitle}{fg=SlideSubtitleColor}
+\setbeamercolor{author}{fg=SlideSubtitleColor}
+\setbeamercolor{institute}{fg=CourseNavy}
+\setbeamercolor{date}{fg=CourseMaroon}
+
+\setbeamercolor{frametitle}{fg=FrameTitleColor,bg=white}
+\setbeamercolor{itemize item}{fg=AccentColor}
+\setbeamercolor{itemize subitem}{fg=AccentColor}
+\setbeamercolor{enumerate item}{fg=AccentColor}
+
+\setbeamerfont{title}{family=\DeckMainFont,series=\bfseries,size=\DeckTitleSize}
+\setbeamerfont{subtitle}{family=\DeckMainFont,size=\DeckSubtitleSize}
+\setbeamerfont{author}{family=\DeckMainFont,size=\DeckAuthorSize}
+\setbeamerfont{institute}{family=\DeckMainFont,size=\DeckInstituteSize}
+\setbeamerfont{date}{family=\DeckMainFont,size=\DeckDateSize}
+
+\setbeamerfont{frametitle}{family=\DeckMainFont,series=\FrameTitleSeries,size=\FrameTitleSize}
+\setbeamerfont{normal text}{family=\DeckMainFont,size=\BodyTextSize}
+\setbeamerfont{footline}{family=\DeckMainFont,size=\FooterTextSize}
+
+\setbeamertemplate{navigation symbols}{}
+
+% -------------------- frame title style --------------------
+\setbeamertemplate{frametitle}{%
+  \vskip\FrameTitleTopSpace%
+  {\usebeamerfont{frametitle}%
+   \usebeamercolor[fg]{frametitle}%
+   \insertframetitle\par}%
+  \vskip\FrameTitleToRuleSpace%
+  \nointerlineskip%
+  {\color{RuleColor}%
+   \hrule height \FrameTitleRuleThickness width \linewidth}%
+  \nointerlineskip%
+  \vskip\FrameTitleAfterRuleSpace%
+}
+
+% -------------------- footline style --------------------
+\newcommand{\FooterLeftText}{}
+\setbeamertemplate{footline}{}
+
+% -------------------- reusable text color commands --------------------
+\newcommand{\blue}[1]{\textcolor{CourseBlue}{#1}}
+\newcommand{\green}[1]{\textcolor{CourseGreen}{#1}}
+\newcommand{\orange}[1]{\textcolor{CourseOrange}{#1}}
+\newcommand{\muted}[1]{\textcolor{MutedColor}{#1}}
+
+% =========================================================
+% CLASSIC BEAMER-STYLE CALLOUT BOXES
+% =========================================================
+
+\newcommand{\CalloutTitleFont}{\large\bfseries}
+\newcommand{\CalloutBodyFont}{\normalsize}
+
+\newcommand{\CalloutArc}{7pt}
+\newcommand{\CalloutRule}{0.55pt}
+
+\newcommand{\CalloutLeftPad}{10pt}
+\newcommand{\CalloutRightPad}{10pt}
+\newcommand{\CalloutTopPad}{9pt}
+\newcommand{\CalloutBottomPad}{9pt}
+
+\newcommand{\CalloutTitleLeftPad}{10pt}
+\newcommand{\CalloutTitleRightPad}{10pt}
+\newcommand{\CalloutTitleTopPad}{2.5pt}
+\newcommand{\CalloutTitleBottomPad}{2.5pt}
+
+\tcbset{
+  calloutbase/.style={
+    enhanced,
+    width=\linewidth,
+    colback=white,
+    coltitle=white,
+    fonttitle=\CalloutTitleFont,
+    fontupper=\CalloutBodyFont,
+    boxrule=\CalloutRule,
+    arc=\CalloutArc,
+    left=\CalloutLeftPad,
+    right=\CalloutRightPad,
+    top=\CalloutTopPad,
+    bottom=\CalloutBottomPad,
+    drop fuzzy shadow,
+    boxed title style={
+      sharp corners=south,
+      rounded corners=north,
+      boxrule=0pt,
+      left=\CalloutTitleLeftPad,
+      right=\CalloutTitleRightPad,
+      top=\CalloutTitleTopPad,
+      bottom=\CalloutTitleBottomPad
+    },
+    attach boxed title to top left={
+      xshift=0pt,
+      yshift=0pt
+    }
+  },
+  calloutcompacttitle/.style={
+    attach boxed title to top left={
+      xshift=0pt,
+      yshift=0pt
+    }
+  },
+  calloutfulltitle/.style={
+    boxed title style={
+      width=\linewidth,
+      boxrule=0pt,
+      sharp corners=south,
+      rounded corners=north,
+      left=\CalloutTitleLeftPad,
+      right=\CalloutTitleRightPad,
+      top=\CalloutTitleTopPad,
+      bottom=\CalloutTitleBottomPad
+    },
+    attach boxed title to top left={
+      xshift=0pt,
+      yshift=0pt
+    },
+    halign title=left
+  },
+  calloutwhitebody/.style={colback=white},
+  calloutshadedblue/.style={colback=ThemeBlueLight},
+  calloutshadedgreen/.style={colback=ThemeGreenLight},
+  calloutshadedorange/.style={colback=ThemeOrangeLight},
+  calloutshadedgray/.style={colback=ThemeLight}
+}
+
+\newtcolorbox{BlueBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeBlue,
+  colbacktitle=ThemeBlue,
+  #1
+}
+
+\newtcolorbox{GreenBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeGreen,
+  colbacktitle=ThemeGreen,
+  #1
+}
+
+\newtcolorbox{OrangeBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeOrange,
+  colbacktitle=ThemeOrange,
+  #1
+}
+
+\newtcolorbox{NavyBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeNavy,
+  colbacktitle=ThemeNavy,
+  #1
+}
+
+\newtcolorbox{PlainBox}[1][]{
+  calloutbase,
+  title={},
+  colframe=ThemeNavy,
+  colbacktitle=ThemeNavy,
+  #1
+}
+
+% =========================================================
+% MODERN PRESENTATION CARDS
+% =========================================================
+
+\newcommand{\CardArc}{7pt}
+\newcommand{\CardRule}{0.45pt}
+\newcommand{\CardTopRule}{2.2pt}
+
+\newcommand{\CardLeftPad}{8pt}
+\newcommand{\CardRightPad}{8pt}
+\newcommand{\CardTopPad}{8pt}
+\newcommand{\CardBottomPad}{8pt}
+
+\newcommand{\CardNumberSize}{\Huge}
+\newcommand{\CardTitleSize}{\large}
+\newcommand{\CardBodySize}{\normalsize}
+
+\tcbset{
+  moderncardbase/.style={
+    enhanced,
+    width=\linewidth,
+    colback=white,
+    colframe=ThemeLine,
+    boxrule=\CardRule,
+    arc=\CardArc,
+    left=\CardLeftPad,
+    right=\CardRightPad,
+    top=\CardTopPad,
+    bottom=\CardBottomPad,
+    drop fuzzy shadow,
+    frame hidden=false,
+    borderline north={\CardTopRule}{0pt}{#1}
+  }
+}
+
+\newtcolorbox{BlueCard}[1][]{moderncardbase=ThemeBlue,#1}
+\newtcolorbox{GreenCard}[1][]{moderncardbase=ThemeGreen,#1}
+\newtcolorbox{OrangeCard}[1][]{moderncardbase=ThemeOrange,#1}
+\newtcolorbox{NavyCard}[1][]{moderncardbase=ThemeNavy,#1}
+
+\newcommand{\CardNumber}[2]{%
+  {\CardNumberSize\bfseries\textcolor{#1}{#2}}\par
+}
+
+\newcommand{\CardIcon}[2]{%
+  {\Huge\textcolor{#1}{#2}}\par
+}
+
+\newcommand{\CardTitle}[1]{%
+  \vspace{0.15cm}
+  {\CardTitleSize\bfseries #1}\par
+}
+
+\newcommand{\CardText}[1]{%
+  \vspace{0.15cm}
+  {\CardBodySize\color{ThemeGray} #1}\par
+}
+
+
+
+
+% =========================================================
+% HORIZONTAL SIDE CARDS
+% Left color stripe + horizontal heading + wide content area
+% =========================================================
+
+\newenvironment{GreenSideCard}[1]{%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ThemeGreen!65!black,
+    boxrule=0.50pt,
+    arc=5pt,
+    left=10pt,
+    right=10pt,
+    top=8pt,
+    bottom=8pt,
+    borderline west={4pt}{0pt}{ThemeGreen},
+    drop fuzzy shadow
+  ]
+  \noindent
+  \begin{minipage}[c]{0.2\linewidth}
+    \raggedright
+    {\Large\bfseries\color{ThemeGreen}#1}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.74\linewidth}
+    \raggedright
+}{%
+  \end{minipage}
+  \end{tcolorbox}
+}
+
+\newenvironment{OrangeSideCard}[1]{%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ThemeOrange!65!black,
+    boxrule=0.50pt,
+    arc=5pt,
+    left=10pt,
+    right=10pt,
+    top=8pt,
+    bottom=8pt,
+    borderline west={4pt}{0pt}{ThemeOrange},
+    drop fuzzy shadow
+  ]
+  \noindent
+  \begin{minipage}[c]{0.20\linewidth}
+    \raggedright
+    {\Large\bfseries\color{ThemeOrange}#1}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.74\linewidth}
+    \raggedright
+}{%
+  \end{minipage}
+  \end{tcolorbox}
+}
+
+\newenvironment{BlueSideCard}[1]{%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ThemeBlue!65!black,
+    boxrule=0.50pt,
+    arc=5pt,
+    left=10pt,
+    right=10pt,
+    top=8pt,
+    bottom=8pt,
+    borderline west={4pt}{0pt}{ThemeBlue},
+    drop fuzzy shadow
+  ]
+  \noindent
+  \begin{minipage}[c]{0.20\linewidth}
+    \raggedright
+    {\Large\bfseries\color{ThemeBlue}#1}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.74\linewidth}
+    \raggedright
+}{%
+  \end{minipage}
+  \end{tcolorbox}
+}
+
+
+
+
+
+
+
+
+% =========================================================
+% FIGURE PLACEHOLDER HELPERS
+% =========================================================
+
+\newcommand{\MissingFigure}[2]{%
+\begin{tikzpicture}
+  \node[
+    rounded corners=8pt,
+    draw=CourseLine,
+    fill=CourseLight,
+    minimum width=#1,
+    minimum height=#2,
+    align=center,
+    inner sep=8pt
+  ] {
+    \color{CourseGray}
+    \faImage\\[4pt]
+    Placeholder figure\\
+    \scriptsize Replace with your actual file
+  };
+\end{tikzpicture}%
+}
+
+\newcommand{\MaybeFigure}[3]{%
+\IfFileExists{#1}{%
+  \includegraphics[width=#2,height=#3,keepaspectratio]{#1}%
+}{%
+  \MissingFigure{#2}{#3}%
+}%
+}
+
+\newcommand{\SignalPlaceholder}[3]{%
+\begin{tcolorbox}[
+  enhanced,
+  width=\linewidth,
+  height=#1,
+  colback=#2!8,
+  colframe=#2!45,
+  boxrule=0.55pt,
+  arc=7pt,
+  left=5pt,
+  right=5pt,
+  top=5pt,
+  bottom=5pt,
+  halign=center,
+  valign=center,
+  drop fuzzy shadow
+]
+{\Large\textcolor{#2}{\faImage}}\\[4pt]
+{\bfseries #3}\\[-1pt]
+{\scriptsize\color{ThemeGray} image placeholder}
+\end{tcolorbox}%
+}
+
+\newcommand{\TinySignalSketchCT}{%
+\begin{tikzpicture}[x=0.62cm,y=0.40cm]
+  \draw[-{Latex[length=2mm]},CourseGray] (-2.4,0) -- (2.6,0) node[right] {\scriptsize $t$};
+  \draw[-{Latex[length=2mm]},CourseGray] (0,-1.35) -- (0,1.45) node[above] {\scriptsize $x(t)$};
+  \draw[very thick,CourseBlue,smooth,domain=-2.1:2.2,samples=80]
+    plot (\x,{0.55*sin(150*\x)+0.35*cos(70*\x)});
+\end{tikzpicture}%
+}
+
+\newcommand{\TinySignalSketchDT}{%
+\begin{tikzpicture}[x=0.40cm,y=0.40cm]
+  \draw[-{Latex[length=2mm]},CourseGray] (-5.4,0) -- (5.8,0) node[right] {\scriptsize $n$};
+  \draw[-{Latex[length=2mm]},CourseGray] (0,-1.4) -- (0,1.5) node[above] {\scriptsize $x[n]$};
+  \foreach \n/\v in {-5/-0.4,-4/-0.8,-3/-0.15,-2/0.55,-1/0.9,0/1.2,1/0.75,2/0.35,3/-0.25,4/-0.55,5/-0.15}{
+    \draw[very thick,CourseGreen] (\n,0) -- (\n,\v);
+    \fill[CourseGreen] (\n,\v) circle (2pt);
+  }
+\end{tikzpicture}%
+}
+
+% =========================================================
+% TITLE METADATA
+% =========================================================
+
+
+
+
+\title{Lecture 3: Linear Time Invariant Systems and Convolution}
+\vspace{6cm}
+\subtitle{CSE 219: Signals and Linear Systems}
+
+\author{Anik Saha\\[-1pt]{\small Adjunct Lecturer, Department of CSE, BUET}}
+% \institute{Department of Computer Science and Engineering\\Bangladesh University of Engineering and Technology}
+\date{}
+
+\begin{document}
+
+
+% =========================================================
+% TITLE
+% =========================================================
+
+\begin{frame}[plain]
+\vspace{0.55cm}
+\titlepage
+
+% \vspace{-0.15cm}
+% \begin{center}
+% \begin{BlueBox}[width=0.78\textwidth,halign=center,calloutshadedblue,fontupper=\large]{}
+% A first language for describing information that changes.
+% \end{BlueBox}
+% \end{center}
+
+
+\end{frame}
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+\vfill
+
+\begin{center}
+
+{\fontsize{30}{34}\selectfont\bfseries\color{FrameTitleColor}
+Systems and LTI Systems\par}
+
+\vspace{0.25cm}
+
+{\Large\color{ThemeGray}
+Signals go in. Signals come out.\par}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{A system transforms an input signal into an output signal}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+A system is something that takes a \textbf{signal} and produces another \textbf{signal}.
+\[
+x(t)\quad \longrightarrow\quad \boxed{\text{system}}\quad \longrightarrow\quad y(t)
+\]
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{GreenCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Continuous-time view}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\scriptsize}]
+
+% input plot
+\begin{scope}[xshift=-4.4cm]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-1.4,0) -- (1.7,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.18) -- (0,1.35);
+
+  \draw[very thick,ThemeBlue] (-1.2,0) -- (0,0);
+  \draw[very thick,ThemeBlue] (0,0) -- (0,1);
+  \draw[very thick,ThemeBlue] (0,1) -- (1.45,1);
+
+  \node[ThemeBlue,above] at (0.80,1.08) {\(x(t)=u(t)\)};
+\end{scope}
+
+% system box
+\node[
+  draw=ThemeNavy,
+  fill=ThemeLight,
+  rounded corners=6pt,
+  very thick,
+  minimum width=2.1cm,
+  minimum height=1.05cm,
+  align=center
+] (sys) at (0,0.55) {{\Large\(\mathcal S\)}\\[-1pt] system};
+
+% arrows
+\draw[-{Latex[length=2.3mm]},very thick,ThemeGray] (-2.65,0.55) -- (-1.25,0.55);
+\draw[-{Latex[length=2.3mm]},very thick,ThemeGray] (1.25,0.55) -- (2.65,0.55);
+
+% output plot
+\begin{scope}[xshift=4.35cm]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-1.4,0) -- (1.7,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.18) -- (0,1.35);
+
+  \draw[very thick,ThemeGreen] (-1.2,0) -- (0,0);
+  \draw[very thick,ThemeGreen] (0,0) -- (0,1);
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=0:1.45,samples=80] (\x,{exp(-1.25*\x)});
+
+  \node[ThemeGreen,above] at (0.80,0.55) {\(y(t)\)};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{A system takes a whole signal, not just one number}
+
+\vspace{0.02cm}
+
+\begin{OrangeCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Ordinary function: one number goes in, one number comes out}
+
+% \vspace{0.04cm}
+
+% \begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\scriptsize}]
+
+%   \node[
+%     draw=ThemeOrange,
+%     fill=ThemeOrangeLight,
+%     rounded corners=6pt,
+%     very thick,
+%     minimum width=1.25cm,
+%     minimum height=0.75cm,
+%     align=center,
+%     font=\Large\bfseries
+%   ] (in) at (-4.1,0) {\(3\)};
+
+%   \node[
+%     draw=ThemeNavy,
+%     fill=ThemeLight,
+%     rounded corners=6pt,
+%     very thick,
+%     minimum width=1.45cm,
+%     minimum height=0.75cm,
+%     align=center,
+%     font=\Large\bfseries
+%   ] (f) at (0,0) {\(f\)};
+
+%   \node[
+%     draw=ThemeGreen,
+%     fill=ThemeGreenLight,
+%     rounded corners=6pt,
+%     very thick,
+%     minimum width=1.25cm,
+%     minimum height=0.75cm,
+%     align=center,
+%     font=\Large\bfseries
+%   ] (out) at (4.1,0) {\(9\)};
+
+%   \draw[-{Latex[length=2.2mm]},very thick,ThemeGray] (in) -- (f);
+%   \draw[-{Latex[length=2.2mm]},very thick,ThemeGray] (f) -- (out);
+
+%   \node[ThemeOrange,font=\large\bfseries] at (-4.1,-0.82) {number in};
+%   \node[ThemeGreen,font=\large\bfseries] at (4.1,-0.82) {number out};
+
+% \end{tikzpicture}
+
+\end{OrangeCard}
+
+\vspace{0.14cm}
+
+\begin{BlueCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Signal system: one whole signal / function goes in, another whole signal / function comes out}
+
+\vspace{0.16cm}
+
+\begin{tikzpicture}[x=0.95cm,y=0.65cm,every node/.style={font=\scriptsize}]
+
+% input signal
+\begin{scope}[xshift=-4.75cm]
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-1.55,0) -- (1.70,0) node[right] {$t$};
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-1.05) -- (0,1.25);
+
+  \draw[very thick,ThemeBlue,smooth]
+    plot[domain=-1.35:1.35,samples=90] (\x,{0.85*sin(160*\x)});
+
+  \node[ThemeBlue,above] at (0.92,0.86) {\(x(t)\)};
+  \node[ThemeBlue,font=\large\bfseries] at (0,-1.45) {whole input signal};
+\end{scope}
+
+% system box
+\node[
+  draw=ThemeNavy,
+  fill=ThemeLight,
+  rounded corners=6pt,
+  very thick,
+  minimum width=1.55cm,
+  minimum height=0.92cm,
+  align=center
+] (sys) at (0,0) {{\Large\(\mathcal S\)}\\[-1pt] system};
+
+% arrows
+\draw[-{Latex[length=2.3mm]},very thick,ThemeGray] (-2.65,0) -- (-0.95,0);
+\draw[-{Latex[length=2.3mm]},very thick,ThemeGray] (0.95,0) -- (2.65,0);
+
+% output signal
+\begin{scope}[xshift=4.75cm]
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-1.55,0) -- (1.70,0) node[right] {$t$};
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-1.05) -- (0,1.25);
+
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=-1.35:1.35,samples=90] (\x,{0.55*sin(160*\x)});
+
+  \node[ThemeGreen,above] at (0.92,0.58) {\(y(t)\)};
+  \node[ThemeGreen,font=\large\bfseries] at (0,-1.45) {whole output signal};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{BlueCard}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Discrete-time systems transform one sequence into another}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+In discrete time, the input is a whole sequence \(x[n]\), \\ and the output is another sequence \(y[n]\).
+\[
+x[n]\quad\longrightarrow\quad \mathcal S\quad\longrightarrow\quad y[n]
+\]
+\end{OrangeBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{BlueCard}[width=0.98\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Example input-output pair}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.68cm,y=0.80cm,every node/.style={font=\scriptsize}]
+
+% input sequence
+\begin{scope}[xshift=-4.5cm]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-3.4,0) -- (3.7,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-1.25) -- (0,1.65);
+
+  \foreach \n/\v in {-3/0.2,-2/0.7,-1/-0.4,0/1.2,1/0.6,2/-0.8,3/0.3}{
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (2pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  \node[ThemeBlue,above] at (1.8,1.15) {\(x[n]\)};
+\end{scope}
+
+% system
+\node[
+  draw=ThemeNavy,
+  fill=ThemeLight,
+  rounded corners=6pt,
+  very thick,
+  minimum width=1.7cm,
+  minimum height=1cm,
+  align=center
+] at (0,0.25) {{\Large\(\mathcal S\)}};
+
+\draw[-{Latex[length=2.2mm]},very thick,ThemeGray] (-2.2,0.25) -- (-1.0,0.25);
+\draw[-{Latex[length=2.2mm]},very thick,ThemeGray] (1.0,0.25) -- (2.2,0.25);
+
+% output sequence
+\begin{scope}[xshift=4.5cm]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-3.4,0) -- (3.7,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-1.25) -- (0,1.65);
+
+  \foreach \n/\v in {-3/0.1,-2/0.35,-1/0.15,0/0.75,1/0.90,2/-0.10,3/-0.25}{
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (2pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  \node[ThemeGreen,above] at (1.8,1.05) {\(y[n]\)};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+\vfill
+
+\begin{center}
+
+{\fontsize{30}{34}\selectfont\bfseries\color{FrameTitleColor}
+Two Properties that will make things easier\par}
+
+% \vspace{0.25cm}
+
+% {\Large\color{ThemeGray}
+% Signals go in. Signals come out.\par}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Linear: scaling the input simply scales the output}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+If
+\(
+x(t)\longrightarrow y(t),
+\)
+then, 
+\(
+a\,x(t)\longrightarrow a\,y(t).
+\)
+\end{BlueBox}
+
+\vspace{0.08cm}
+
+\begin{center}
+\begin{GreenCard}[width=0.92\textwidth,halign=center,top=8pt,bottom=8pt]
+
+\begin{tikzpicture}[x=0.82cm,y=0.65cm,every node/.style={font=\scriptsize}]
+
+% row 1
+\begin{scope}[yshift=1.45cm]
+
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-5.8,0.2) {\(x(t)\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (-5.1,0) -- (-2.3,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.7,-0.85) -- (-3.7,1.1);
+  \draw[very thick,ThemeBlue,smooth]
+    plot[domain=-4.95:-2.45,samples=80] (\x,{0.75*sin(200*(\x+5))});
+
+  \node[
+    draw=ThemeNavy,
+    fill=ThemeLight,
+    rounded corners=5pt,
+    very thick,
+    minimum width=1.3cm,
+    minimum height=0.75cm
+  ] at (0,0.25) {\(\mathcal S\)};
+
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (-2.0,0.25) -- (-0.8,0.25);
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (0.8,0.25) -- (2.0,0.25);
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (2.35,0) -- (5.15,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (3.75,-0.85) -- (3.75,1.1);
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=2.50:5.00,samples=80] (\x,{0.45*sin(200*(\x-2.5))});
+
+  \node[anchor=west,ThemeGreen,font=\large\bfseries] at (5.35,0.2) {\(y(t)\)};
+
+\end{scope}
+
+% row 2
+\begin{scope}[yshift=-1.35cm]
+
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-5.8,0.2) {\(2x(t)\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (-5.1,0) -- (-2.3,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.7,-1.55) -- (-3.7,1.70);
+  \draw[very thick,ThemeBlue,smooth]
+    plot[domain=-4.95:-2.45,samples=80] (\x,{1.50*sin(200*(\x+5))});
+
+  \node[
+    draw=ThemeNavy,
+    fill=ThemeLight,
+    rounded corners=5pt,
+    very thick,
+    minimum width=1.3cm,
+    minimum height=0.75cm
+  ] at (0,0.25) {\(\mathcal S\)};
+
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (-2.0,0.25) -- (-0.8,0.25);
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (0.8,0.25) -- (2.0,0.25);
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (2.35,0) -- (5.15,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (3.75,-1.55) -- (3.75,1.70);
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=2.50:5.00,samples=80] (\x,{0.90*sin(200*(\x-2.5))});
+
+  \node[anchor=west,ThemeGreen,font=\large\bfseries] at (5.35,0.2) {\(2y(t)\)};
+
+\end{scope}
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Linear: adding inputs simply adds outputs}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+If
+\(
+x_1(t)\longrightarrow y_1(t),
+\text{and } 
+x_2(t)\longrightarrow y_2(t),
+\)
+then, 
+\(
+x_1(t)+x_2(t)\longrightarrow y_1(t)+y_2(t).
+\)
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+\begin{column}{0.48\textwidth}
+\begin{BlueCard}[halign=center,top=12pt,bottom=12pt]
+\CardTitle{Separate inputs}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+x_1(t)\longrightarrow y_1(t)
+\]
+\[
+x_2(t)\longrightarrow y_2(t)
+\]
+}
+
+\vspace{0.08cm}
+
+{\normalsize
+Treat the two pieces separately.
+}
+\end{BlueCard}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[halign=center,top=12pt,bottom=12pt]
+\CardTitle{Input together}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+x_1(t)+x_2(t)
+\longrightarrow
+y_1(t)+y_2(t)
+\]
+}
+
+\vspace{0.08cm}
+
+{\normalsize
+The output is just the sum of the separate outputs.
+}
+\end{GreenCard}
+\end{column}
+
+\end{columns}
+
+\vspace{0.12cm}
+
+\begin{BlueBox}[calloutshadedblue,halign=center,fontupper=\large]{}
+This is the superposition idea.
+\end{BlueBox}
+
+\end{frame}
+
+
+
+
+
+% % --------------------------------------------------------
+% \begin{frame}{Linearity combines scaling and adding into one rule}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Linearity means the system respects linear combinations.
+% \end{BlueBox}
+
+% \vspace{0.16cm}
+
+% \begin{center}
+% \begin{GreenCard}[width=0.84\textwidth,halign=center,top=14pt,bottom=14pt]
+% \CardTitle{The compact test}
+
+% \vspace{0.08cm}
+
+% {\Large
+% \[
+% x_1(t)\longrightarrow y_1(t),
+% \qquad
+% x_2(t)\longrightarrow y_2(t)
+% \]
+% }
+
+% \vspace{0.12cm}
+
+% {\Huge
+% \[
+% a x_1(t)+b x_2(t)
+% \longrightarrow
+% a y_1(t)+b y_2(t)
+% \]
+% }
+
+% \vspace{0.06cm}
+
+% {\normalsize
+% For any constants \(a,b\).
+% }
+% \end{GreenCard}
+% \end{center}
+
+% \end{frame}
+
+
+
+
+\begin{frame}{Time-invariance}
+
+\begin{center}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figs/time-invariance.jpg}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Time-invariant: delaying the input only delays the output}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+If
+\(
+x(t)\longrightarrow y(t),
+\)
+then, 
+\(
+x(t-t_0)\longrightarrow y(t-t_0).
+\)
+\end{OrangeBox}
+
+\vspace{0.08cm}
+
+\begin{center}
+\begin{BlueCard}[width=0.92\textwidth,halign=center,top=8pt,bottom=8pt]
+
+
+
+
+\begin{tikzpicture}[x=0.80cm,y=0.62cm,every node/.style={font=\scriptsize}]
+
+% top row original
+\begin{scope}[yshift=1.55cm]
+
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-5.6,0.35) {\(x(t)\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (-5.0,0) -- (-2.2,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (-4.2,-0.15) -- (-4.2,1.35);
+  \draw[very thick,ThemeBlue] (-4.8,0) -- (-4.2,0) -- (-4.2,1) -- (-3.3,1) -- (-3.3,0) -- (-2.4,0);
+
+  \node[
+    draw=ThemeNavy,
+    fill=ThemeLight,
+    rounded corners=5pt,
+    very thick,
+    minimum width=1.2cm,
+    minimum height=0.70cm
+  ] at (0,0.45) {\(\mathcal S\)};
+
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (-1.9,0.45) -- (-0.75,0.45);
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (0.75,0.45) -- (1.9,0.45);
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (2.25,0) -- (5.05,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (3.05,-0.15) -- (3.05,1.35);
+
+  % output is zero before the response begins
+  \draw[very thick,ThemeGreen] (2.45,0) -- (3.05,0);
+
+  % jump/start of response
+  \draw[very thick,ThemeGreen] (3.05,0) -- (3.05,1);
+
+  % decaying output response
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=3.05:4.8,samples=80] (\x,{exp(-1.4*(\x-3.05))});
+
+  \node[anchor=west,ThemeGreen,font=\large\bfseries] at (5.25,0.35) {\(y(t)\)};
+
+\end{scope}
+
+% bottom row delayed
+\begin{scope}[yshift=-1.35cm]
+
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-5.6,0.35) {\(x(t-t_0)\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (-5.0,0) -- (-2.2,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (-4.2,-0.15) -- (-4.2,1.35);
+  \draw[very thick,ThemeBlue] (-4.8,0) -- (-3.4,0) -- (-3.4,1) -- (-2.55,1) -- (-2.55,0) -- (-2.35,0);
+
+  \draw[-{Latex[length=1.4mm]},ThemeOrange,thick] (-4.20,1.20) -- (-3.40,1.20);
+  \node[ThemeOrange,above] at (-3.80,1.24) {delay};
+
+  \node[
+    draw=ThemeNavy,
+    fill=ThemeLight,
+    rounded corners=5pt,
+    very thick,
+    minimum width=1.2cm,
+    minimum height=0.70cm
+  ] at (0,0.45) {\(\mathcal S\)};
+
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (-1.9,0.45) -- (-0.75,0.45);
+  \draw[-{Latex[length=2mm]},very thick,ThemeGray] (0.75,0.45) -- (1.9,0.45);
+
+  \draw[-{Latex[length=1.3mm]},thick,black] (2.25,0) -- (5.05,0);
+  \draw[-{Latex[length=1.3mm]},thick,black] (3.05,-0.15) -- (3.05,1.35);
+
+  % delayed output is zero before the delayed response begins
+  \draw[very thick,ThemeGreen] (2.45,0) -- (3.85,0);
+
+  % delayed jump/start of response
+  \draw[very thick,ThemeGreen] (3.85,0) -- (3.85,1);
+
+  % delayed decaying output response
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=3.85:5.0,samples=80] (\x,{exp(-1.4*(\x-3.85))});
+
+  \draw[-{Latex[length=1.4mm]},ThemeOrange,thick] (3.05,1.20) -- (3.85,1.20);
+  \node[ThemeOrange,above] at (3.45,1.24) {same delay};
+
+  \node[anchor=west,ThemeGreen,font=\large\bfseries] at (5.25,0.35) {\(y(t-t_0)\)};
+
+\end{scope}
+
+\end{tikzpicture}
+
+
+
+
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{An LTI system is linear and time-invariant}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[halign=center,top=12pt,bottom=12pt]
+\CardTitle{Linear}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+a x_1+b x_2
+\longrightarrow
+a y_1+b y_2
+\]
+}
+
+% \vspace{0.08cm}
+
+% {\normalsize
+% Scaling and adding before the system gives the same result as scaling and adding after the system.
+% }
+\end{GreenCard}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{OrangeCard}[halign=center,top=12pt,bottom=12pt]
+\CardTitle{Time-invariant}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+x(t-t_0)
+\longrightarrow
+y(t-t_0)
+\]
+}
+
+% \vspace{0.08cm}
+
+% {\normalsize
+% If the input is delayed, the output is delayed by the same amount.
+% }
+\end{OrangeCard}
+\end{column}
+
+\end{columns}
+
+\vspace{0.16cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\large
+]{}
+\textbf{Why we care:} for LTI systems, one special response will eventually let us compute the output for \textbf{any possible input}.
+\end{BlueBox}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+\vfill
+
+\begin{center}
+
+{\fontsize{30}{34}\selectfont\bfseries\color{FrameTitleColor}
+A Detour through Convolution\par}
+
+\vspace{0.25cm}
+
+{\Large\color{ThemeGray}
+Convolution is simply a mathematical operation that appears very universally.\par}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Convolution is just another operation on two sequences}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% When we are given two sequences of numbers, we can combine them in different ways.
+% Convolution is one such operation.
+% \end{BlueBox}
+
+% \vspace{0.10cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.90\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+% \CardTitle{Suppose we have two sequences}
+\CardTitle{}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.82cm,y=0.68cm,every node/.style={font=\scriptsize}]
+
+  % first sequence
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-0.85,0.75) {\(a[k]\)};
+  \foreach \k/\v in {0/1,1/3,2/2,3/5,4/4}{
+    \node[
+      draw=ThemeGreen,
+      fill=ThemeGreen!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.58cm,
+      minimum height=0.42cm
+    ] at (\k,0.75) {\(\v\)};
+  }
+
+  % second sequence
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-0.85,-0.25) {\(b[k]\)};
+  \foreach \k/\v in {0/2,1/{-1},2/4,3/1,4/3}{
+    \node[
+      draw=ThemeOrange,
+      fill=ThemeOrange!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.58cm,
+      minimum height=0.42cm
+    ] at (\k,-0.25) {\(\v\)};
+  }
+
+  % index labels
+  \foreach \k in {0,1,2,3,4}{
+    \node[ThemeGray] at (\k,-0.83) {\(k=\k\)};
+  }
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{center}
+
+\vspace{0.04cm}
+
+
+
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+\begin{column}{0.32\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Add}
+
+\vspace{0.02cm}
+
+{\Large\(\displaystyle (a+b)[k]\)\par}
+
+\vspace{0.06cm}
+
+{\normalsize
+Add matching positions.
+}
+\end{BlueCard}
+\end{column}
+
+\begin{column}{0.32\textwidth}
+\begin{OrangeCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Subtract}
+
+\vspace{0.02cm}
+
+{\Large\(\displaystyle (a-b)[k]\)\par}
+
+\vspace{0.06cm}
+
+{\normalsize
+Subtract matching positions.
+}
+\end{OrangeCard}
+\end{column}
+
+\begin{column}{0.32\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Convolve}
+
+\vspace{0.02cm}
+
+{\Large\(\displaystyle (a*b)[k]\)\par}
+
+\vspace{0.06cm}
+
+{\normalsize
+A different kind of mixing.
+}
+\end{GreenCard}
+\end{column}
+
+\end{columns}
+
+
+
+
+% \vspace{0.08cm}
+
+% \begin{OrangeBox}[calloutshadedorange,halign=center,fontupper=\large]{}
+% Our goal now is to understand what this new operation \(*\) really does.
+% \end{OrangeBox}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Convolution beautifully appears while multiplying polynomials}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Before thinking about signals, let us multiply two ordinary polynomials.
+% \end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{First polynomial}
+
+\vspace{0.06cm}
+
+{\Large
+\[
+A(z)=1+3z+2z^2+5z^3+4z^4
+\]
+}
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.85cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \foreach \k/\v in {0/1,1/3,2/2,3/5,4/4}{
+    \node[
+      draw=ThemeGreen,
+      fill=ThemeGreen!12,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.45cm
+    ] at (\k,0) {\(\v\)};
+    \node[below] at (\k,-0.40) {\(a_{\k}\)};
+  }
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{OrangeCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Second polynomial}
+
+\vspace{0.06cm}
+
+{\Large
+\[
+B(z)=2-z+4z^2+z^3+3z^4
+\]
+}
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.85cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \foreach \k/\v in {0/2,1/{-1},2/4,3/1,4/3}{
+    \node[
+      draw=ThemeOrange,
+      fill=ThemeOrange!12,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.45cm
+    ] at (\k,0) {\(\v\)};
+    \node[below] at (\k,-0.40) {\(b_{\k}\)};
+  }
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{column}
+
+\end{columns}
+
+\vspace{0.14cm}
+
+\begin{BlueBox}[halign=center,fontupper=\large]{}
+Question: what is the coefficient of \(z^4\) in \(A(z)B(z)\)?
+\end{BlueBox}
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The coefficient of \(z^4\) comes from criss-crossed pairings}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+To obtain \(z^4\), we collect all products whose powers add to \(4\).
+% \[
+% z^k\cdot z^{4-k}=z^4
+% \]
+\end{OrangeBox}
+
+\vspace{0.08cm}
+
+\begin{center}
+\begin{BlueCard}[width=0.92\textwidth,halign=center,top=8pt,bottom=8pt]
+\CardTitle{Pair coefficients whose indices add to \(4\)}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=1.05cm,y=0.88cm,every node/.style={font=\scriptsize}]
+
+  % top row: a coefficients
+  \node[
+    draw=ThemeGreen,
+    fill=ThemeGreen!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (a0) at (0,1.25) {\(1\)};
+  \node[
+    draw=ThemeGreen,
+    fill=ThemeGreen!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (a1) at (1,1.25) {\(3\)};
+  \node[
+    draw=ThemeGreen,
+    fill=ThemeGreen!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (a2) at (2,1.25) {\(2\)};
+  \node[
+    draw=ThemeGreen,
+    fill=ThemeGreen!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (a3) at (3,1.25) {\(5\)};
+  \node[
+    draw=ThemeGreen,
+    fill=ThemeGreen!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (a4) at (4,1.25) {\(4\)};
+
+  % bottom row: b coefficients in normal order
+  \node[
+    draw=ThemeOrange,
+    fill=ThemeOrange!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (b0) at (0,-0.55) {\(2\)};
+  \node[
+    draw=ThemeOrange,
+    fill=ThemeOrange!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (b1) at (1,-0.55) {\(-1\)};
+  \node[
+    draw=ThemeOrange,
+    fill=ThemeOrange!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (b2) at (2,-0.55) {\(4\)};
+  \node[
+    draw=ThemeOrange,
+    fill=ThemeOrange!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (b3) at (3,-0.55) {\(1\)};
+  \node[
+    draw=ThemeOrange,
+    fill=ThemeOrange!14,
+    rounded corners=2pt,
+    very thick,
+    minimum width=0.72cm,
+    minimum height=0.48cm
+  ] (b4) at (4,-0.55) {\(3\)};
+
+  % labels
+  \foreach \x/\lab in {0/a_0,1/a_1,2/a_2,3/a_3,4/a_4}{
+    \node[ThemeGreen,font=\bfseries] at (\x,1.83) {\(\lab\)};
+  }
+
+  \foreach \x/\lab in {0/b_0,1/b_1,2/b_2,3/b_3,4/b_4}{
+    \node[ThemeOrange,font=\bfseries] at (\x,-1.12) {\(\lab\)};
+  }
+
+  \node[ThemeGreen,font=\large\bfseries,anchor=east] at (-0.90,1.25) {\(A(z)\)};
+  \node[ThemeOrange,font=\large\bfseries,anchor=east] at (-0.90,-0.55) {\(B(z)\)};
+
+  % crossed pairings for index sum 4
+  \draw[very thick,ThemeBlue] (a0.south) -- (b4.north);
+  \draw[very thick,ThemeBlue] (a1.south) -- (b3.north);
+  \draw[very thick,ThemeBlue] (a2.south) -- (b2.north);
+  \draw[very thick,ThemeBlue] (a3.south) -- (b1.north);
+  \draw[very thick,ThemeBlue] (a4.south) -- (b0.north);
+
+  % small index-sum reminders
+  \node[ThemeGray] at (2,-1.70)
+    {\(a_0b_4,\ a_1b_3,\ a_2b_2,\ a_3b_1,\ a_4b_0\)};
+
+\end{tikzpicture}
+
+\vspace{0.06cm}
+
+\(
+c[4]
+=
+1\cdot3+3\cdot1+2\cdot4+5(-1)+4\cdot2
+=
+17.
+\)
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The crossed-pairing rule has a compact formula}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+If
+\[
+A(z)=\sum_k a[k]z^k,
+\qquad
+B(z)=\sum_k b[k]z^k,
+\]
+then the coefficient of \(z^n\) in \(A(z)B(z)\) is
+\[
+c[n]=\sum_k a[k]\,b[n-k].
+\]
+\end{BlueBox}
+
+% \vspace{0.12cm}
+
+% \begin{center}
+% \begin{GreenCard}[width=0.86\textwidth,halign=center,top=12pt,bottom=12pt]
+% \CardTitle{For \(n=4\), the index pairs are}
+
+% \vspace{0.06cm}
+
+% {\Large
+% \[
+% \begin{gathered}
+% (k,\;4-k)
+% =
+% (0,4),\ (1,3),\ (2,2),\ (3,1),\ (4,0),\\[8pt]
+% c[4]
+% =
+% a[0]b[4]+a[1]b[3]+a[2]b[2]+a[3]b[1]+a[4]b[0].
+% \end{gathered}
+% \]
+% }
+
+% \vspace{0.06cm}
+
+% {\normalsize
+% The first index moves forward; the second index moves backward.
+% }
+% \end{GreenCard}
+% \end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Reflection turns crossed pairings into vertical pairings}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+The formula \(b[n-k]\) means: reflect one sequence, then shift it.
+\end{OrangeBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{BlueCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Start with \(n=0\): compare \(a[k]\) with \(b[-k]\)}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.78cm,y=0.76cm,every node/.style={font=\scriptsize}]
+
+  % k-axis
+  \draw[-{Latex[length=1.6mm]},thick,black] (-4.8,-1.45) -- (4.85,-1.45) node[right] {$k$};
+  \foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,-1.38) -- (\k,-1.52);
+    \node[below] at (\k,-1.56) {$\k$};
+  }
+
+  % labels
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-4.95,1.00) {\(a[k]\)};
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-4.95,-0.15) {\(b[-k]\)};
+
+  % a[k]
+  \foreach \k/\v in {0/1,1/3,2/2,3/5,4/4}{
+    \node[
+      draw=ThemeGreen,
+      fill=ThemeGreen!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,1.00) {\(\v\)};
+  }
+
+  % b[-k], reflected
+  \foreach \k/\v in {-4/3,-3/1,-2/4,-1/{-1},0/2}{
+    \node[
+      draw=ThemeOrange,
+      fill=ThemeOrange!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,-0.15) {\(\v\)};
+  }
+
+  % overlap line at k=0
+  \draw[very thick,ThemeBlue] (0,0.70) -- (0,0.12);
+  \node[ThemeBlue,above] at (0,1.38) {overlap};
+
+  % \node[ThemeGray] at (0,-2.25) {\(c[0]=a[0]b[0]=1\cdot2=2\)};
+
+\end{tikzpicture}
+
+\(c[0]=a[0]b[0]=1\cdot2=2\)
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Sliding the reflected sequence gives the next coefficients}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+For \(c[n]\), we compare \(a[k]\) with \(b[n-k]\).  \\ 
+The shift \(n\) decides which products line up vertically.
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{GreenCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Now take for example \(n=2\): compare \(a[k]\) with \(b[2-k]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=0.76cm,every node/.style={font=\scriptsize}]
+
+  % k-axis
+  \draw[-{Latex[length=1.6mm]},thick,black] (-3.2,-1.45) -- (5.0,-1.45) node[right] {$k$};
+  \foreach \k in {-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,-1.38) -- (\k,-1.52);
+    \node[below] at (\k,-1.56) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-3.35,1.00) {\(a[k]\)};
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-3.35,-0.15) {\(b[2-k]\)};
+
+  % a[k]
+  \foreach \k/\v in {0/1,1/3,2/2,3/5,4/4}{
+    \node[
+      draw=ThemeGreen,
+      fill=ThemeGreen!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,1.00) {\(\v\)};
+  }
+
+  % b[2-k]: positions -2,-1,0,1,2 with b4,b3,b2,b1,b0
+  \foreach \k/\v in {-2/3,-1/1,0/4,1/{-1},2/2}{
+    \node[
+      draw=ThemeOrange,
+      fill=ThemeOrange!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,-0.15) {\(\v\)};
+  }
+
+  % overlap lines
+  \foreach \k in {0,1,2}{
+    \draw[very thick,ThemeBlue] (\k,0.70) -- (\k,0.12);
+  }
+
+  % \node[ThemeGray] at (1,-2.25)
+  % {\(c[2]=1\cdot4+3(-1)+2\cdot2=5\)};
+
+\end{tikzpicture}
+
+\(c[2]=1\cdot4+3(-1)+2\cdot2=5\)
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{At \(n=4\), the vertical products give the \(z^4\) coefficient}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Now compare \(a[k]\) with \(b[4-k]\).  
+All five products line up.
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{BlueCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{The same \(c[4]\) as before, now as vertical multiply-and-add}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.82cm,y=0.76cm,every node/.style={font=\scriptsize}]
+
+  % k-axis
+  \draw[-{Latex[length=1.6mm]},thick,black] (-0.8,-1.45) -- (5.0,-1.45) node[right] {$k$};
+  \foreach \k in {0,1,2,3,4}{
+    \draw[black] (\k,-1.38) -- (\k,-1.52);
+    \node[below] at (\k,-1.56) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-0.95,1.00) {\(a[k]\)};
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-0.95,-0.15) {\(b[4-k]\)};
+
+  % a[k]
+  \foreach \k/\v in {0/1,1/3,2/2,3/5,4/4}{
+    \node[
+      draw=ThemeGreen,
+      fill=ThemeGreen!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,1.00) {\(\v\)};
+  }
+
+  % b[4-k]: b4,b3,b2,b1,b0 at k=0..4
+  \foreach \k/\v in {0/3,1/1,2/4,3/{-1},4/2}{
+    \node[
+      draw=ThemeOrange,
+      fill=ThemeOrange!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,-0.15) {\(\v\)};
+  }
+
+  % overlap lines
+  \foreach \k in {0,1,2,3,4}{
+    \draw[very thick,ThemeBlue] (\k,0.70) -- (\k,0.12);
+  }
+
+  % \node[ThemeGray] at (2,-2.25)
+  % {\(c[4]=1\cdot3+3\cdot1+2\cdot4+5(-1)+4\cdot2=17\)};
+
+\end{tikzpicture}
+
+\(c[4]=1\cdot3+3\cdot1+2\cdot4+5(-1)+4\cdot2=17\)
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}{Convolution: Keep the first signal just as is, reflect the second, slide rightward, find overlaps, then multiply-and-add!}
+
+\begin{center}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figs/convolution-penguin-shark.png}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{This sliding multiply-and-add operation is convolution}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\Large,
+  halign=center
+]{}
+\(
+c[n]=(a*b)[n]=\sum_{k=-\infty}^{\infty}a[k]\,b[n-k]
+\)
+\end{BlueBox}
+
+% \vspace{0.14cm}
+
+% \begin{columns}[T,totalwidth=\textwidth]
+
+% \begin{column}{0.32\textwidth}
+% \begin{GreenCard}[halign=center,top=12pt,bottom=12pt]
+% \CardTitle{1. Reflect}
+
+% \vspace{0.08cm}
+
+% {\Large
+% \[
+% b[k]\quad\longrightarrow\quad b[-k]
+% \]
+% }
+
+% \vspace{0.06cm}
+
+% {\normalsize
+% Turn one sequence around.
+% }
+% \end{GreenCard}
+% \end{column}
+
+% \begin{column}{0.32\textwidth}
+% \begin{OrangeCard}[halign=center,top=12pt,bottom=12pt]
+% \CardTitle{2. Shift}
+
+% \vspace{0.08cm}
+
+% {\Large
+% \[
+% b[-k]\quad\longrightarrow\quad b[n-k]
+% \]
+% }
+
+% \vspace{0.06cm}
+
+% {\normalsize
+% Move it to the position \(n\).
+% }
+% \end{OrangeCard}
+% \end{column}
+
+% \begin{column}{0.32\textwidth}
+% \begin{BlueCard}[halign=center,top=12pt,bottom=12pt]
+% \CardTitle{3. Multiply and add}
+
+% \vspace{0.08cm}
+
+% {\Large
+% \[
+% \sum_k a[k]b[n-k]
+% \]
+% }
+
+% \vspace{0.06cm}
+
+% {\normalsize
+% Vertical products become one output value.
+% }
+% \end{BlueCard}
+% \end{column}
+
+% \end{columns}
+
+% \vspace{0.14cm}
+
+% \begin{OrangeBox}[calloutshadedorange,halign=center,fontupper=\large]{}
+% For finite sequences, the missing samples are treated as zero.
+% \end{OrangeBox}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\Large,
+%   halign=center
+% ]{}
+% \(
+% \displaystyle
+% c[n]=(a*b)[n]=\sum_{k=-\infty}^{\infty}a[k]\,b[n-k]
+% \)
+% \end{BlueBox}
+
+% \vspace{0.10cm}
+
+\begin{center}
+
+% ---------------- 1. REFLECT ----------------
+\begin{GreenCard}[
+  width=\textwidth,
+  top=8pt,
+  bottom=8pt
+]
+\begin{minipage}[c]{0.22\textwidth}
+{\Large\bfseries\color{ThemeGreen}1. Reflect}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.68\textwidth}
+{\Large
+\[
+b[k]\quad\longrightarrow\quad b[-k]
+\]
+}
+\vspace{-0.12cm}
+{\normalsize Turn one sequence around (time-reversal).}
+\end{minipage}
+\end{GreenCard}
+
+\vspace{0.02cm}
+
+% ---------------- 2. SHIFT ----------------
+\begin{OrangeCard}[
+  width=\textwidth,
+  top=8pt,
+  bottom=8pt
+]
+\begin{minipage}[c]{0.22\textwidth}
+{\Large\bfseries\color{ThemeOrange}2. Shift}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.68\textwidth}
+{\Large
+\[
+b[-k]\quad\longrightarrow\quad b[n-k]
+\]
+}
+\vspace{-0.12cm}
+{\normalsize Right shift the reflected sequence to the position \(n\).}
+\end{minipage}
+\end{OrangeCard}
+
+\vspace{0.02cm}
+
+% ---------------- 3. MULTIPLY AND ADD ----------------
+\begin{BlueCard}[
+  width=\textwidth,
+  top=8pt,
+  bottom=8pt
+]
+\begin{minipage}[c]{0.28\textwidth}
+{\Large\bfseries\color{ThemeBlue}3. Multiply, add}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.62\textwidth}
+{\Large 
+\[
+\sum_k a[k]\,b[n-k]
+\]
+}
+\vspace{-0.12cm}
+{\normalsize Sum of vertical products give one output value \(c[n]\).}
+\end{minipage}
+\end{BlueCard}
+
+\end{center}
+
+% \vspace{0.08cm}
+
+% \begin{OrangeBox}[calloutshadedorange,halign=center,fontupper=\large]{}
+% For finite sequences, the missing samples are treated as zero.
+% \end{OrangeBox}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice: compute the convolution of two short sequences}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Let
+% \[
+% y[n]=x[n]*h[n].
+% \]
+% Find the output sequence.
+% \end{OrangeBox}
+
+% \vspace{0.08cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{\(x[n]\)}
+
+\vspace{0.02cm}
+
+\[
+x[0]=1,\; x[1]=2,\; x[2]=1,\; x[3]=1
+\]
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.80cm,y=0.55cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-0.7,0) -- (4.3,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.15) -- (0,2.55);
+
+  \foreach \n/\v in {0/1,1/2,2/1,3/1}{
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (2.2pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  \foreach \n in {0,1,2,3}{
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{\(h[n]\)}
+
+\vspace{0.02cm}
+
+\[
+h[0]=1,\; h[1]=1,\; h[2]=-1,\; h[3]=2
+\]
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.80cm,y=0.55cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-0.7,0) -- (4.3,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-1.45) -- (0,2.55);
+
+  \foreach \n/\v in {0/1,1/1,2/-1,3/2}{
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (2.2pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  \foreach \n in {0,1,2,3}{
+    \node[below] at (\n,-0.08) {$\n$};
+  }
+\end{tikzpicture}
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{First reflect one sequence before sliding}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+For convolution, we compare \(x[k]\) with \(h[n-k]\). \\  
+So the second sequence is first reflected: \(h[k]\to h[-k]\).
+\end{BlueBox}
+
+\vspace{0.08cm}
+
+\begin{center}
+\begin{OrangeCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Reflection of \(h[k]\)}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.78cm,y=0.72cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black] (-4.4,-1.75) -- (4.6,-1.75) node[right] {$k$};
+  \foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,-1.68) -- (\k,-1.82);
+    \node[below] at (\k,-1.86) {$\k$};
+  }
+
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-4.55,1.00) {\(h[k]\)};
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-4.55,-0.30) {\(h[-k]\)};
+
+  % h[k]
+  \foreach \k/\v in {0/1,1/1,2/{-1},3/2}{
+    \node[
+      draw=ThemeBlue,
+      fill=ThemeBlue!12,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,1.00) {\(\v\)};
+  }
+
+  % h[-k]
+  \foreach \k/\v in {-3/2,-2/{-1},-1/1,0/1}{
+    \node[
+      draw=ThemeOrange,
+      fill=ThemeOrange!14,
+      rounded corners=2pt,
+      very thick,
+      minimum width=0.62cm,
+      minimum height=0.46cm
+    ] at (\k,-0.30) {\(\v\)};
+  }
+
+  % \draw[-{Latex[length=2mm]},very thick,ThemeGray] (1.55,0.55) .. controls (0.75,0.05) and (-0.70,0.05) .. (-1.55,-0.02);
+  \node[ThemeGray] at (0,0.28) {reflect around \(k=0\)};
+
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Slide the reflected sequence: first two output samples}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+% n = 0
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=0\): compare \(x[k]\) with \(h[-k]\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.8,-1.35) -- (4.2,-1.35) node[right] {$k$};
+  \foreach \k in {-3,-2,-1,0,1,2,3}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-3.9,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-3.9,-0.10) {\(h[-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {-3/2,-2/{-1},-1/1,0/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \draw[very thick,ThemeBlue] (0,0.74) -- (0,0.16);
+
+  % \node[ThemeBlue] at (0,-2.02) {\(y[0]=1\cdot1=1\)};
+\end{tikzpicture}
+
+\(y[0]=1\cdot1=1\)
+
+\end{GreenCard}
+\end{column}
+
+% n = 1
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=1\): shift right by one}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.2,-1.35) -- (4.4,-1.35) node[right] {$k$};
+  \foreach \k in {-2,-1,0,1,2,3}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-3.3,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-3.3,-0.10) {\(h[1-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {-2/2,-1/{-1},0/1,1/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \foreach \k in {0,1}{
+    \draw[very thick,ThemeBlue] (\k,0.74) -- (\k,0.16);
+  }
+
+  % \node[ThemeBlue] at (0.7,-2.02) {\(y[1]=1\cdot1+2\cdot1=3\)};
+\end{tikzpicture}
+
+\(y[1]=1\cdot1+2\cdot1=3\)
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The middle positions have the largest overlap}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+% n = 2
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=2\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-2.4,-1.35) -- (4.4,-1.35) node[right] {$k$};
+  \foreach \k in {-1,0,1,2,3}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-2.5,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-2.5,-0.10) {\(h[2-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {-1/2,0/{-1},1/1,2/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \foreach \k in {0,1,2}{
+    \draw[very thick,ThemeBlue] (\k,0.74) -- (\k,0.16);
+  }
+
+  % \node[ThemeBlue] at (1.0,-2.02) {\(y[2]=1(-1)+2(1)+1(1)=2\)};
+\end{tikzpicture}
+
+\(y[2]=1(-1)+2(1)+1(1)=2\)
+
+\end{GreenCard}
+\end{column}
+
+% n = 3
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=3\): all four samples overlap}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-1.2,-1.35) -- (4.4,-1.35) node[right] {$k$};
+  \foreach \k in {0,1,2,3}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-1.3,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-1.3,-0.10) {\(h[3-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {0/2,1/{-1},2/1,3/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \foreach \k in {0,1,2,3}{
+    \draw[very thick,ThemeBlue] (\k,0.74) -- (\k,0.16);
+  }
+
+  % \node[ThemeBlue] at (1.5,-2.02) {\(y[3]=1(2)+2(-1)+1(1)+1(1)=2\)};
+\end{tikzpicture}
+
+\(y[3]=1(2)+2(-1)+1(1)+1(1)=2\)
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{As we keep sliding, the overlap becomes smaller}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+% n = 4
+\begin{column}{0.49\textwidth}
+\begin{OrangeCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=4\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-0.5,-1.35) -- (5.4,-1.35) node[right] {$k$};
+  \foreach \k in {0,1,2,3,4}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-0.6,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-0.6,-0.10) {\(h[4-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {1/2,2/{-1},3/1,4/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \foreach \k in {1,2,3}{
+    \draw[very thick,ThemeBlue] (\k,0.74) -- (\k,0.16);
+  }
+
+  % \node[ThemeBlue] at (2.0,-2.02) {\(y[4]=2(2)+1(-1)+1(1)=4\)};
+\end{tikzpicture}
+
+\(y[4]=2(2)+1(-1)+1(1)=4\)
+
+\end{OrangeCard}
+\end{column}
+
+% n = 5
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=5\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-0.5,-1.35) -- (6.4,-1.35) node[right] {$k$};
+  \foreach \k in {0,1,2,3,4,5}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-0.6,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-0.6,-0.10) {\(h[5-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {2/2,3/{-1},4/1,5/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \foreach \k in {2,3}{
+    \draw[very thick,ThemeBlue] (\k,0.74) -- (\k,0.16);
+  }
+
+  % \node[ThemeBlue] at (2.6,-2.02) {\(y[5]=1(2)+1(-1)=1\)};
+\end{tikzpicture}
+
+\(y[5]=1(2)+1(-1)=1\)
+
+\end{GreenCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The last overlap gives the final sample}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(n=6\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.62cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.3mm]},thick,black] (-0.5,-1.35) -- (7.3,-1.35) node[right] {$k$};
+  \foreach \k in {0,1,2,3,4,5,6}{
+    \node[below] at (\k,-1.43) {$\k$};
+  }
+
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-0.6,1.00) {\(x[k]\)};
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-0.6,-0.10) {\(h[6-k]\)};
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/1}{
+    \node[draw=ThemeGreen,fill=ThemeGreen!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,1.00) {\(\v\)};
+  }
+
+  \foreach \k/\v in {3/2,4/{-1},5/1,6/1}{
+    \node[draw=ThemeOrange,fill=ThemeOrange!14,rounded corners=2pt,very thick,
+      minimum width=0.48cm,minimum height=0.38cm] at (\k,-0.10) {\(\v\)};
+  }
+
+  \draw[very thick,ThemeBlue] (3,0.74) -- (3,0.16);
+
+  % \node[ThemeBlue] at (3.0,-2.02) {\(y[6]=1(2)=2\)};
+\end{tikzpicture}
+
+\(y[6]=1(2)=2\)
+
+\end{BlueCard}
+\end{column}
+
+\begin{column}{0.47\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Final output}
+
+\vspace{0.04cm}
+
+\[
+y[n]=\{1,\;3,\;2,\;2,\;4,\;1,\;2\}
+\]
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.50cm,y=0.40cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-0.6,0) -- (7.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.15) -- (0,4.75);
+
+  \foreach \n/\v in {0/1,1/3,2/2,3/2,4/4,5/1,6/2}{
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (1.9pt);
+    \fill[black] (\n,0) circle (0.75pt);
+  }
+
+  \foreach \n in {0,1,2,3,4,5,6}{
+    \node[below] at (\n,-0.08) {$\n$};
+  }
+
+  \node[left] at (0,1) {$1$};
+  \node[left] at (0,2) {$2$};
+  \node[left] at (0,3) {$3$};
+  \node[left] at (0,4) {$4$};
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Think: can we shuffle the order?}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\Large,
+  halign=center
+]{}
+We have defined convolution as
+\[
+(a*b)[n]=\sum_k a[k]\,b[n-k].
+\]
+But what if we swap the two sequences?
+\end{OrangeBox}
+
+\vspace{0.16cm}
+
+\begin{center}
+
+% \begin{BlueCard}[
+%   width=0.88\textwidth,
+%   halign=center,
+%   top=14pt,
+%   bottom=14pt
+% ]
+% \CardTitle{Question}
+
+% \vspace{0.08cm}
+
+% {\Huge
+% \[
+% a*b
+% \quad\stackrel{?}{=}\quad
+% b*a
+% \]
+% }
+
+% \vspace{0.08cm}
+
+% {\Large
+% Does the sliding multiply-and-add operation give the same output if we reverse the order?
+% }
+
+% \vspace{0.12cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+Does the order of convolution matter?
+\end{GreenBox}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: Sure! Convolution does not care about the order}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\Large,
+  halign=center
+]{}
+\(
+a*b=b*a
+\)
+\end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{GreenCard}[
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Polynomial analogy}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+A(z)B(z)=B(z)A(z)
+\]
+}
+
+% {\Large\(\displaystyle A(z)B(z)=B(z)A(z)\)\par}
+
+\vspace{0.08cm}
+
+{\normalsize
+Since convolution appeared from polynomial multiplication, swapping the two polynomials should not change the final coefficients.
+}
+\end{GreenCard}
+
+
+
+\end{frame}
+
+
+
+
+\begin{frame}{But why are we doing all these\ldots?}
+
+\begin{center}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.65\textwidth]{figs/why-monkey-meme-2.png}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+\vfill
+
+\begin{center}
+
+{\fontsize{30}{34}\selectfont\bfseries\color{FrameTitleColor}
+Why Convolution Matters (so very much)!\par}
+
+% \vspace{0.25cm}
+
+% {\Large\color{ThemeGray}
+% Convolution is simply a mathematical operation that appears very universally.\par}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Our goal: find the output of LTI System for any input signal}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Now suppose the system is LTI.  
+% Given any input signal, we want to determine the output signal.
+% \end{BlueBox}
+
+% \vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.98\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{The ambitious problem}
+
+\vspace{0.10cm}
+
+\begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\scriptsize}]
+
+% input signal
+\begin{scope}[xshift=-4.8cm]
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-1.65,0) -- (1.85,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-1.05) -- (0,1.30);
+
+  \draw[very thick,ThemeBlue,smooth]
+    plot[domain=-1.45:1.45,samples=90]
+    (\x,{0.55*sin(190*\x)+0.25*cos(75*\x)});
+
+  \node[ThemeBlue,above] at (0.85,0.82) {\(x(t)\)};
+  \node[ThemeBlue,font=\large\bfseries] at (0,-1.42) {any input};
+\end{scope}
+
+% LTI system
+\node[
+  draw=ThemeNavy,
+  fill=ThemeLight,
+  rounded corners=7pt,
+  very thick,
+  minimum width=2.05cm,
+  minimum height=1.05cm,
+  align=center
+] (sys) at (0,0.10) {{\Large\(\mathcal S\)}\\[-1pt] LTI system};
+
+% arrows
+\draw[-{Latex[length=2.4mm]},very thick,ThemeGray] (-2.65,0.10) -- (-1.20,0.10);
+\draw[-{Latex[length=2.4mm]},very thick,ThemeGray] (1.20,0.10) -- (2.65,0.10);
+
+% output signal
+\begin{scope}[xshift=4.8cm]
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-1.65,0) -- (1.85,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-1.05) -- (0,1.30);
+
+  \node[ThemeOrange,font=\Huge\bfseries] at (0,0.25) {?};
+
+  \node[ThemeGreen,above] at (0.85,0.82) {\(y(t)\)};
+  \node[ThemeGreen,font=\large\bfseries] at (0,-1.42) {unknown output};
+\end{scope}
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+Can we find a systematic method that works for any possible \(x(t)\)?
+\end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Think: how do we solve a difficult problem for any input?}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Before signals, let us look at a familiar number problem.
+\end{OrangeBox}
+
+\vspace{0.18cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.82\textwidth,
+  halign=center,
+  top=16pt,
+  bottom=16pt
+]
+\CardTitle{Question}
+
+\vspace{0.12cm}
+
+% {\Huge
+% \[
+% 72
+% \]
+% }
+
+% \vspace{0.08cm}
+
+{\Large
+How many positive factors does \textbf{\(72\)} have?
+}
+
+\vspace{0.14cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+Of course, we could check \(1,2,3,\ldots,72\) one by one.  
+But there is a better idea.
+\end{GreenBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The easy pieces are prime powers}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\Large,
+  halign=center
+]{}
+\(\displaystyle 72=2^3\cdot 3^2\)
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Factors from \(2^3\)}
+
+
+\vspace{0.24cm}
+
+{\Large
+\(\displaystyle 2^0,\;2^1,\;2^2,\;2^3\)\par
+}
+
+\vspace{0.08cm}
+
+{\Large
+\(\displaystyle 3+1=4\)\par
+}
+
+\vspace{0.06cm}
+
+{\normalsize
+There are \(4\) choices for the power of \(2\).
+}
+
+\end{GreenCard}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{OrangeCard}[
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Factors from \(3^2\)}
+
+\vspace{0.24cm}
+
+{\Large
+\(\displaystyle 3^0,\;3^1,\;3^2\)\par
+}
+
+\vspace{0.08cm}
+
+{\Large
+\(\displaystyle 2+1=3\)\par
+}
+
+\vspace{0.06cm}
+
+{\normalsize
+There are \(3\) choices for the power of \(3\).
+}
+
+\end{OrangeCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Then we combine the small answers}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Each factor is made by choosing one power of \(2\) and one power of \(3\).
+\end{OrangeBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=14pt,
+  bottom=14pt
+]
+\CardTitle{Number of choices}
+
+\vspace{0.10cm}
+
+{\Huge
+\(\displaystyle (3+1)(2+1)=4\cdot3=12\)\par
+% \[
+% (3+1)(2+1)=4\cdot3=12
+
+% \]
+}
+
+\vspace{0.10cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\Large
+]{}
+So \(72\) has \(12\) positive factors.
+\end{BlueBox}
+
+\end{GreenCard}
+\end{center}
+
+% \vspace{0.08cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% The key idea was not brute force.  
+% We decomposed the object into simple pieces, solved there, and combined the answers.
+% \end{OrangeBox}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The philosophy: solve simple pieces, then combine}
+
+\begin{center}
+
+\begin{BlueSideCard}{Step 1}
+{\Large\bfseries Solve for the simplest inputs.}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% For numbers, the simple pieces are prime powers such as \(2^3\) and \(3^2\).
+% }
+\end{BlueSideCard}
+
+\vspace{0.10cm}
+
+\begin{GreenSideCard}{Step 2}
+{\Large\bfseries Break any input into simple pieces.}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% For example,
+% \[
+% 72=2^3\cdot3^2.
+% \]
+% }
+\end{GreenSideCard}
+
+\vspace{0.10cm}
+
+\begin{OrangeSideCard}{Step 3}
+{\Large\bfseries Combine the small answers gracefully.}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% For \(72\), the final answer is
+% \[
+% (3+1)(2+1)=12.
+% \]
+% }
+\end{OrangeSideCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% % --------------------------------------------------------
+% \begin{frame}{We will use the same philosophy for LTI systems}
+
+% % \begin{BlueBox}[
+% %   calloutshadedblue,
+% %   fontupper=\large,
+% %   halign=center
+% % ]{}
+% % Our signal problem will follow the same three-step pattern.
+% % \end{BlueBox}
+
+% % \vspace{0.12cm}
+
+% \begin{center}
+
+% \begin{GreenSideCard}{1}
+% {\Large\bfseries Find the output for the simplest possible input signal.}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% This special output will become the system's signature.
+% }
+% \end{GreenSideCard}
+
+% \vspace{0.10cm}
+
+% \begin{OrangeSideCard}{2}
+% {\Large\bfseries Express a complicated input as a combination of simple inputs.}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% Instead of attacking \(x(t)\) all at once, we build it from tiny pieces.
+% }
+% \end{OrangeSideCard}
+
+% \vspace{0.10cm}
+
+% \begin{BlueSideCard}{3}
+% {\Large\bfseries Use linearity and time-invariance to combine the corresponding outputs.}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% This is where convolution will reappear naturally.
+% }
+% \end{BlueSideCard}
+
+% \end{center}
+
+% \end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The simplest input signal is the impulse function}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% What is the simplest signal we can give as input to a system?
+% \end{BlueBox}
+
+\vspace{0.06cm}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{The discrete-time impulse}
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.72cm,y=1.00cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.7mm]},thick,black]
+    (-5.6,0) -- (5.95,0) node[right] {$n$};
+  \draw[-{Latex[length=1.7mm]},thick,black]
+    (0,-0.20) -- (0,1.65);
+
+  \foreach \n in {-5,-4,-3,-2,-1,1,2,3,4,5}{
+    \fill[black] (\n,0) circle (1.5pt);
+  }
+
+  \draw[very thick,ThemeOrange] (0,0) -- (0,1.10);
+  \fill[ThemeOrange] (0,1.10) circle (2.5pt);
+  \fill[black] (0,0) circle (0.8pt);
+
+  \foreach \n in {-5,-4,-3,-2,-1,0,1,2,3,4,5}{
+    \draw[black] (\n,0.04) -- (\n,-0.04);
+    \node[below] at (\n,-0.06) {$\n$};
+  }
+
+  \node[left] at (0,1.10) {$1$};
+  \node[ThemeOrange,above right] at (0.15,1.18) {\Large \(\delta[n]\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+It is zero everywhere except at one instant.
+\end{GreenBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+\begin{frame}{The impulse response: poking a sleeping cat\ldots}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figs/cat-impulse-response.png}
+\end{figure}
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The impulse response is the system's signature}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Given one impulse, the output we observe is called the \textbf{impulse response}.
+\end{OrangeBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.98\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Definition}
+
+\vspace{0.10cm}
+
+\begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\scriptsize}]
+
+% input impulse
+\begin{scope}[xshift=-4.7cm]
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-1.45,0) -- (1.65,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.15) -- (0,1.35);
+
+  \foreach \n in {-1,1}{
+    \fill[black] (\n,0) circle (1.4pt);
+  }
+  \draw[very thick,ThemeOrange] (0,0) -- (0,1);
+  \fill[ThemeOrange] (0,1) circle (2.3pt);
+
+  \node[ThemeOrange,above] at (0.45,1.05) {\(\delta[n]\)};
+\end{scope}
+
+% system
+\node[
+  draw=ThemeNavy,
+  fill=ThemeLight,
+  rounded corners=7pt,
+  very thick,
+  minimum width=2.00cm,
+  minimum height=1.00cm,
+  align=center
+] (sys) at (0,0.42) {{\Large\(\mathcal S\)}\\[-1pt] LTI system};
+
+\draw[-{Latex[length=2.4mm]},very thick,ThemeGray]
+  (-2.7,0.42) -- (-1.20,0.42);
+\draw[-{Latex[length=2.4mm]},very thick,ThemeGray]
+  (1.20,0.42) -- (2.7,0.42);
+
+% output h[n]
+\begin{scope}[xshift=4.7cm]
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-1.45,0) -- (1.65,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.15) -- (0,1.35);
+
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=0:1.35,samples=70] (\x,{exp(-1.4*\x)});
+  \draw[very thick,ThemeGreen] (-1.2,0) -- (0,0);
+  \draw[very thick,ThemeGreen] (0,0) -- (0,1);
+
+  \node[ThemeGreen,above] at (0.65,0.70) {\(h[n]\)};
+\end{scope}
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+\delta[n]\quad\longrightarrow\quad h[n]
+\]
+}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{An example: one \textit{hello} can create many echoes}
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figs/room-reflection-impulse-response.png}
+\end{figure}
+
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{In this toy echo system, the impulse response is a step}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+One short input sound produces repeated equal echoes:
+\[
+\delta[n]\quad\longrightarrow\quad h[n]=u[n].
+\]
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+\begin{column}{0.48\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Input: one short \textit{hello}}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.56cm,y=0.82cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.4mm]},thick,black] (-4.4,0) -- (5.0,0) node[right] {$n$};
+  \draw[-{Latex[length=1.4mm]},thick,black] (0,-0.15) -- (0,1.45);
+
+  \foreach \n in {-4,-3,-2,-1,1,2,3,4}{
+    \fill[black] (\n,0) circle (1.4pt);
+  }
+
+  \draw[very thick,ThemeBlue] (0,0) -- (0,1);
+  \fill[ThemeBlue] (0,1) circle (2.2pt);
+
+  \foreach \n in {-4,-3,-2,-1,0,1,2,3,4}{
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+
+  \node[ThemeBlue,above] at (0.65,1.05) {\(\delta[n]\)};
+\end{tikzpicture}
+
+\end{BlueCard}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Output: repeated echoes}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.56cm,y=0.82cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.4mm]},thick,black] (-4.4,0) -- (5.0,0) node[right] {$n$};
+  \draw[-{Latex[length=1.4mm]},thick,black] (0,-0.15) -- (0,1.45);
+
+  \foreach \n in {-4,-3,-2,-1}{
+    \fill[black] (\n,0) circle (1.4pt);
+  }
+
+  \foreach \n in {0,1,2,3,4}{
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,1);
+    \fill[ThemeGreen] (\n,1) circle (2.2pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  \foreach \n in {-4,-3,-2,-1,0,1,2,3,4}{
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+
+  \node[ThemeGreen,above] at (2.45,1.05) {\(h[n]=u[n]\)};
+  \node[ThemeGray] at (4.60,1.15) {\(\cdots\)};
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Think: what does this new impulse response mean?}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+\(
+\delta[n]\quad\longrightarrow\quad h[n]=\alpha^n u[n],
+\qquad 0<\alpha<1.
+\)
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Impulse response}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.70cm,y=1.20cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.0,0) -- (9.0,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.08) -- (0,1.25) node[above] {$h[n]$};
+
+  \foreach \n in {-1}{
+    \fill[black] (\n,0) circle (1.2pt);
+  }
+
+  \foreach \n in {0,1,2,3,4,5,6,7}{
+    \pgfmathsetmacro{\v}{pow(0.70,\n)}
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (2.0pt);
+    \fill[black] (\n,0) circle (0.75pt);
+  }
+
+  \foreach \n in {0,1,2,3,4,5,6,7}{
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+
+  \node[left] at (0,1) {$1$};
+  \node[ThemeGray,font=\large] at (8.35,0.25) {$\cdots$};
+
+  \node[ThemeBlue,above] at (3.55,0.78)
+    {\(1,\alpha,\alpha^2,\alpha^3,\ldots\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+What does it mean physically?  
+What if we change \(\alpha\)?
+\end{GreenBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: \(\alpha\) controls how quickly the echoes fade}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+\(\alpha\) is the fraction of echo strength that survives after each reflection.
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Larger \(\alpha\) means slower fading}
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.58cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+% =========================================================
+% Slower fading: alpha = 0.9
+% =========================================================
+\begin{scope}[xshift=-3.4cm]
+  \draw[-{Latex[length=1.2mm]},thick,black]
+    (-0.7,0) -- (7.6,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black]
+    (0,-0.08) -- (0,1.22);
+
+  \foreach \n in {0,1,2,3,4,5,6,7}{
+    \pgfmathsetmacro{\v}{pow(0.90,\n)}
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (1.8pt);
+    \fill[black] (\n,0) circle (0.7pt);
+  }
+
+  \node[ThemeGreen,font=\bfseries] at (3.4,1.28) {\(\alpha=0.9\)};
+  \node[ThemeGray] at (3.4,-0.42) {slower fading};
+\end{scope}
+
+% =========================================================
+% Faster fading: alpha = 0.3
+% =========================================================
+\begin{scope}[xshift=3.4cm]
+  \draw[-{Latex[length=1.2mm]},thick,black]
+    (-0.7,0) -- (7.6,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black]
+    (0,-0.08) -- (0,1.22);
+
+  \foreach \n in {0,1,2,3,4,5,6,7}{
+    \pgfmathsetmacro{\v}{pow(0.30,\n)}
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (1.8pt);
+    \fill[black] (\n,0) circle (0.7pt);
+  }
+
+  \node[ThemeBlue,font=\bfseries] at (3.4,1.28) {\(\alpha=0.3\)};
+  \node[ThemeGray] at (3.4,-0.42) {faster fading};
+\end{scope}
+
+\end{tikzpicture}
+
+\vspace{0.10cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+Large \(\alpha\): echoes stay longer.
+\qquad
+Small \(\alpha\): echoes die quickly.
+\end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Now let's send a four-sample input to our toy echo system!}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+% Suppose the input is
+\(
+x[n]=\delta[n]+2\delta[n-1]-\delta[n-2]+\delta[n-3].
+\)
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.98\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+% \CardTitle{Input signal}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=0.62cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.6mm]},thick,black]
+    (-1.4,0) -- (5.0,0) node[right] {$n$};
+  \draw[-{Latex[length=1.6mm]},thick,black]
+    (0,-1.45) -- (0,2.55) node[above] {$x[n]$};
+
+  \foreach \n/\v in {0/1,1/2,2/-1,3/1}{
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (2.4pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  \foreach \n in {0,1,2,3,4}{
+    \node[below] at (\n,-0.06) {$\n$};
+  }
+
+  \node[left] at (0,1) {$1$};
+  \node[left] at (0,2) {$2$};
+  \node[left] at (0,-1) {$-1$};
+
+\end{tikzpicture}
+
+\vspace{0.06cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+Can we find the output using only the response to one impulse?
+\end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Let's first break the input into scaled and shifted impulses!}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Each sample is just a scaled, shifted impulse.
+% \end{OrangeBox}
+
+% \vspace{0.10cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Four simple pieces}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.76cm,y=0.62cm,every node/.style={font=\scriptsize}]
+
+% axes and pieces macro style manually
+
+% piece 1
+\begin{scope}[xshift=-4.2cm,yshift=0.85cm]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-0.6,0) -- (3.8,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-0.25) -- (0,1.45);
+  \draw[very thick,ThemeBlue] (0,0) -- (0,1);
+  \fill[ThemeBlue] (0,1) circle (2pt);
+  \node[below] at (0,-0.05) {$0$};
+  \node[ThemeBlue,above] at (1.4,1.02) {\(\delta[n]\)};
+\end{scope}
+
+% piece 2
+\begin{scope}[xshift=1.15cm,yshift=0.85cm]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-0.6,0) -- (3.8,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-0.25) -- (0,2.45);
+  \draw[very thick,ThemeGreen] (1,0) -- (1,2);
+  \fill[ThemeGreen] (1,2) circle (2pt);
+  \node[below] at (1,-0.05) {$1$};
+  \node[ThemeGreen,above] at (1.75,2.02) {\(2\delta[n-1]\)};
+\end{scope}
+
+% piece 3
+\begin{scope}[xshift=-4.2cm,yshift=-1.65cm]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-0.6,0) -- (3.8,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-1.35) -- (0,0.75);
+  \draw[very thick,ThemeOrange] (2,0) -- (2,-1);
+  \fill[ThemeOrange] (2,-1) circle (2pt);
+  \node[below] at (2,-0.05) {$2$};
+  \node[ThemeOrange,below] at (1.60,-1.10) {\(-\delta[n-2]\)};
+\end{scope}
+
+% piece 4
+\begin{scope}[xshift=1.15cm,yshift=-1.65cm]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-0.6,0) -- (3.8,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-0.25) -- (0,1.45);
+  \draw[very thick,ThemeBlue] (3,0) -- (3,1);
+  \fill[ThemeBlue] (3,1) circle (2pt);
+  \node[below] at (3,-0.05) {$3$};
+  \node[ThemeBlue,above] at (2.25,1.02) {\(\delta[n-3]\)};
+\end{scope}
+
+\end{tikzpicture}
+
+% \vspace{0.05cm}
+
+% {\Large
+% \[
+% x[n]=\delta[n]+2\delta[n-1]-\delta[n-2]+\delta[n-3].
+% \]
+% }
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{LTI tells us the output of each shifted impulse\ldots}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+\(
+\delta[n]\longrightarrow h[n]=u[n].
+\)
+% Linearity and time-invariance tell us all the other pieces.
+\end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.98\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Linearity and Time invariance simplifies everything beautifully!}
+
+\vspace{0.06cm}
+
+{\Large
+\[
+\begin{array}{rclcl}
+\delta[n] &\longrightarrow& h[n] &=& u[n]\\[6pt]
+\delta[n-k] &\longrightarrow& h[n-k] &=& u[n-k]\\[6pt]
+a\,\delta[n-k] &\longrightarrow& a\,h[n-k] &=& a\,u[n-k]
+\end{array}
+\]
+}
+
+% \vspace{0.08cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% A shifted input impulse creates the same response, shifted by the same amount.
+% \end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Each sample creates a shifted copy of the impulse response}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Since \(h[n]=u[n]\), each sample creates a shifted step.
+% \end{OrangeBox}
+
+% \vspace{0.10cm}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(\delta[n]\longrightarrow u[n]\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.45cm,y=0.58cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-1.4,0) -- (6.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-0.15) -- (0,1.45);
+  \foreach \n in {-1,0,1,2,3,4,5}{
+    \ifnum\n<0
+      \fill[black] (\n,0) circle (1pt);
+    \else
+      \draw[very thick,ThemeBlue] (\n,0) -- (\n,1);
+      \fill[ThemeBlue] (\n,1) circle (1.8pt);
+    \fi
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+\end{tikzpicture}
+\end{BlueCard}
+
+\vspace{0.08cm}
+
+\begin{GreenCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(2\delta[n-1]\longrightarrow 2u[n-1]\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.45cm,y=0.38cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-1.4,0) -- (6.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-0.15) -- (0,2.75);
+  \foreach \n in {-1,0,1,2,3,4,5}{
+    \ifnum\n<1
+      \fill[black] (\n,0) circle (1pt);
+    \else
+      \draw[very thick,ThemeGreen] (\n,0) -- (\n,2);
+      \fill[ThemeGreen] (\n,2) circle (1.8pt);
+    \fi
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+\end{tikzpicture}
+\end{GreenCard}
+\end{column}
+
+\begin{column}{0.49\textwidth}
+\begin{OrangeCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(-\delta[n-2]\longrightarrow -u[n-2]\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.45cm,y=0.48cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-1.4,0) -- (6.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-1.55) -- (0,0.85);
+  \foreach \n in {-1,0,1,2,3,4,5}{
+    \ifnum\n<2
+      \fill[black] (\n,0) circle (1pt);
+    \else
+      \draw[very thick,ThemeOrange] (\n,0) -- (\n,-1);
+      \fill[ThemeOrange] (\n,-1) circle (1.8pt);
+    \fi
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+\end{tikzpicture}
+\end{OrangeCard}
+
+\vspace{0.08cm}
+
+\begin{BlueCard}[halign=center,top=8pt,bottom=8pt]
+\CardTitle{\(\delta[n-3]\longrightarrow u[n-3]\)}
+
+\vspace{0.03cm}
+
+\begin{tikzpicture}[x=0.45cm,y=0.58cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.2mm]},thick,black] (-1.4,0) -- (6.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.2mm]},thick,black] (0,-0.15) -- (0,1.45);
+  \foreach \n in {-1,0,1,2,3,4,5}{
+    \ifnum\n<3
+      \fill[black] (\n,0) circle (1pt);
+    \else
+      \draw[very thick,ThemeBlue] (\n,0) -- (\n,1);
+      \fill[ThemeBlue] (\n,1) circle (1.8pt);
+    \fi
+    \node[below] at (\n,-0.05) {$\n$};
+  }
+\end{tikzpicture}
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Linearity lets us add the four outputs}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% The total response is the sum of the responses to the four impulse pieces.
+% \end{BlueBox}
+
+% \vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Output of the toy echo system}
+
+\vspace{0.06cm}
+
+{\Large
+\[
+\begin{aligned}
+y[n]
+&=
+u[n]+2u[n-1]-u[n-2]+u[n-3].
+\end{aligned}
+\]
+}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.70cm,y=0.48cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.6mm]},thick,black]
+    (-1.4,0) -- (6.5,0) node[right] {$n$};
+  \draw[-{Latex[length=1.6mm]},thick,black]
+    (0,-0.25) -- (0,3.85) node[above] {$y[n]$};
+
+  \foreach \n/\v in {-1/0,0/1,1/3,2/2,3/3,4/3,5/3}{
+    \ifnum\n<0
+      \fill[black] (\n,0) circle (1.3pt);
+    \else
+      \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+      \fill[ThemeGreen] (\n,\v) circle (2.2pt);
+      \fill[black] (\n,0) circle (0.8pt);
+    \fi
+    \node[below] at (\n,-0.06) {$\n$};
+  }
+
+  \node[left] at (0,1) {$1$};
+  \node[left] at (0,2) {$2$};
+  \node[left] at (0,3) {$3$};
+
+\end{tikzpicture}
+
+% \vspace{0.06cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% One input sample creates one shifted copy of \(h[n]\); the output is their sum.
+% \end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Any discrete-time input can be built from shifted impulses}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% A discrete-time signal is just a collection of samples.  
+% Each sample can be viewed as a scaled impulse placed at that index.
+% \end{OrangeBox}
+
+% \vspace{0.10cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.98\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+% \CardTitle{Impulse decomposition}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.70cm,y=0.56cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-4.25,0) -- (5.05,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-1.45) -- (0,2.15) node[above] {$x[n]$};
+
+  % continuation dots: signal may continue on both sides
+  \node[ThemeBlue,font=\large] at (-3.75,0.62) {$\cdots$};
+  \node[ThemeBlue,font=\large] at (4.45,0.62) {$\cdots$};
+
+  % a few shown samples
+  \foreach \n/\v in {-2/0.5,-1/1.2,0/-0.8,1/1.7,2/0.9,3/-0.5}{
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (2.1pt);
+    \fill[black] (\n,0) circle (0.8pt);
+  }
+
+  % extra small baseline dots to suggest more samples
+  \foreach \n in {-3,4}{
+    \fill[ThemeBlue] (\n,0) circle (1.2pt);
+  }
+
+  \foreach \n in {-2,-1,0,1,2,3}{
+    \draw[black] (\n,0.05) -- (\n,-0.05);
+    \node[below] at (\n,-0.08) {$\n$};
+  }
+
+  \node[ThemeGray] at (1.45,-1.95)
+    {each sample comes from one scaled shifted impulse};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+{\Large
+\(\displaystyle
+x[n]=\sum_{k=-\infty}^{\infty}x[k]\,\delta[n-k]
+\)\par
+}
+
+\vspace{0.08cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+The value \(x[k]\) becomes the height of the impulse placed at \(n=k\).
+\end{GreenBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The two LTI properties again simplify everything!}
+
+\begin{center}
+
+\begin{GreenSideCard}{Time-invariant}
+{\large
+If
+\(\displaystyle \delta[n]\longrightarrow h[n]\),
+then a shifted impulse gives a shifted response:
+\[
+\delta[n-k]\longrightarrow h[n-k].
+\]
+}
+\end{GreenSideCard}
+
+\vspace{0.12cm}
+
+\begin{OrangeSideCard}{Linear}
+{\large
+If the shifted impulse is scaled by \(x[k]\), the output is scaled by the same amount:
+\[
+x[k]\delta[n-k]\longrightarrow x[k]h[n-k].
+\]
+}
+\end{OrangeSideCard}
+
+% \vspace{0.14cm}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% So each input sample creates one scaled and shifted copy of the impulse response.
+% \end{BlueBox}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Each sample creates a shifted copy of the impulse response}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+Suppose the impulse response of the LTI system is \(h[n]\).  \\
+Then one input piece \(x[k]\delta[n-k]\) produces one output piece \(x[k]h[n-k]\).
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{One input sample at index \(k\)}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=1cm,y=0.80cm,every node/.style={font=\scriptsize}]
+
+% input impulse piece
+\begin{scope}[xshift=-4.45cm]
+  \draw[-{Latex[length=1.4mm]},thick,black] (-1.35,0) -- (2.45,0) node[right] {$n$};
+  \draw[-{Latex[length=1.4mm]},thick,black] (0,-0.20) -- (0,1.55);
+
+  \foreach \n in {-1,0,2}{
+    \fill[black] (\n,0) circle (1pt);
+  }
+
+  \draw[very thick,ThemeBlue] (1,0) -- (1,1.05);
+  \fill[ThemeBlue] (1,1.05) circle (2.4pt);
+
+  \node[below] at (1,-0.05) {$k$};
+  \node[ThemeBlue,above] at (1.00,1.16) {\(x[k]\)};
+  \node[ThemeBlue,font=\large\bfseries] at (0.55,-0.85)
+    {\(x[k]\delta[n-k]\)};
+\end{scope}
+
+% system box
+\node[
+  draw=ThemeNavy,
+  fill=ThemeLight,
+  rounded corners=7pt,
+  very thick,
+  minimum width=1.75cm,
+  minimum height=0.92cm,
+  align=center
+] (sys) at (0,0.45) {{\Large\(\mathcal S\)}\\[-1pt] LTI};
+
+\draw[-{Latex[length=2.3mm]},very thick,ThemeGray]
+  (-2.40,0.45) -- (-1.05,0.45);
+\draw[-{Latex[length=2.3mm]},very thick,ThemeGray]
+  (1.05,0.45) -- (2.40,0.45);
+
+% output response piece
+\begin{scope}[xshift=4.45cm]
+  \draw[-{Latex[length=1.4mm]},thick,black] (-1.35,0) -- (2.75,0) node[right] {$n$};
+  \draw[-{Latex[length=1.4mm]},thick,black] (0,-0.20) -- (0,1.55);
+
+  % zero before k
+  \draw[very thick,ThemeGreen] (-1.0,0) -- (1,0);
+
+  % shifted response samples
+  \foreach \n/\v in {1/1.05,1.7/0.62,2.4/0.36}{
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (2.1pt);
+  }
+
+  \node[below] at (1,-0.05) {$k$};
+  \node[ThemeGreen,font=\large\bfseries] at (0.70,-0.85)
+    {\(x[k]h[n-k]\)};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Now add the responses from all samples}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Because the input is the sum of impulse pieces, linearity lets us add the corresponding output pieces.
+% \end{OrangeBox}
+
+% \vspace{0.12cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Input decomposition becomes output summation}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+\begin{array}{rcl}
+x[n]
+&=&
+\displaystyle\sum_k x[k]\delta[n-k]
+\\[16pt]
+% \downarrow && \downarrow
+% \\[-2pt]
+\text{\textbf{Therefore, }} y[n]
+&=&
+\displaystyle\sum_k x[k]h[n-k]
+\end{array}
+\]
+}
+
+\vspace{0.08cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+Every term \(x[k]\delta[n-k]\) contributes one term \(x[k]h[n-k]\) to the output.
+\end{GreenBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Convolution Returns!!!}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% For a discrete-time LTI system, once we know the impulse response \(h[n]\), the output to any input \(x[n]\) is
+% \end{BlueBox}
+
+% \vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.86\textwidth,
+  halign=center,
+  top=14pt,
+  bottom=14pt
+]
+\CardTitle{The LTI input-output formula}
+
+\vspace{0.08cm}
+
+{\LARGE
+\[
+y[n]=\sum_{k=-\infty}^{\infty}x[k]\,h[n-k]
+\]
+}
+
+\vspace{0.10cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\LARGE
+]{}
+\(\displaystyle y[n]=(x*h)[n]\)
+\end{OrangeBox}
+
+% \vspace{0.06cm}
+
+% {\large
+% The convolution we met in polynomial multiplication is exactly the operation that computes the output of an LTI system.
+% }
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The bridge thus completes!}
+
+\begin{center}
+
+\begin{GreenSideCard}{1}
+{\large\bfseries
+Find the system's response to the simplest input.
+}
+
+\vspace{0.03cm}
+
+{\normalsize
+\(\displaystyle \delta[n]\longrightarrow h[n]\).
+This \(h[n]\) is the impulse response.
+}
+\end{GreenSideCard}
+
+\vspace{0.10cm}
+
+\begin{OrangeSideCard}{2}
+{\large\bfseries
+Break any input signal down into shifted impulses.
+}
+
+\vspace{0.03cm}
+
+{\normalsize
+\(\displaystyle x[n]=\sum_k x[k]\delta[n-k]\).
+}
+\end{OrangeSideCard}
+
+\vspace{0.10cm}
+
+\begin{BlueSideCard}{3}
+{\large\bfseries
+Shift, scale, and add the impulse responses.
+}
+
+\vspace{0.03cm}
+
+{\normalsize
+\(\displaystyle y[n]=\sum_k x[k]h[n-k]=(x*h)[n]\).
+}
+\end{BlueSideCard}
+
+\vspace{0.12cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+This is why convolution matters: it is the natural language of LTI systems.
+\end{OrangeBox}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}

@@ -1,0 +1,5154 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% =========================================================
+% CSE 219: Signals and Linear Systems
+% Introductory slides
+% Compile with: pdflatex cse219_intro_slides.tex
+% =========================================================
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{pgfplots}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{fontawesome5}
+\usepackage{microtype}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{ragged2e}
+
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric,calc,decorations.pathreplacing}
+
+\usepackage{animate}
+
+
+
+
+% =========================================================
+% SIGNAL-TRANSFORMATION DRAWING HELPERS
+% Put this in the PREAMBLE, before \begin{document}.
+% =========================================================
+
+\newcommand{\IrregularCTPath}{%
+  (-1.80,0.15)
+  .. controls (-1.55,0.70) and (-1.18,0.82) .. (-0.82,0.58)
+  .. controls (-0.58,0.38) and (-0.47,-0.38) .. (-0.08,-0.32)
+  .. controls (0.12,-0.28) and (0.22,0.78) .. (0.55,0.95)
+  .. controls (0.86,0.60) and (1.08,0.20) .. (1.55,0.18)
+  .. controls (1.78,0.18) and (1.90,-0.16) .. (2.02,-0.03)
+}
+
+\newcommand{\DrawDTSequence}[2]{%
+  \foreach \k/\v in {
+    -3/0.30,
+    -2/0.85,
+    -1/0.45,
+     0/-0.65,
+     1/-0.20,
+     2/0.70,
+     3/0.30
+  }{%
+    \draw[very thick,#2] ({\k+#1},0) -- ({\k+#1},\v);
+    \fill[#2] ({\k+#1},\v) circle (2.1pt);
+    \fill[black] ({\k+#1},0) circle (0.9pt);
+  }%
+}
+
+
+
+% Dense discrete-time sequence:
+% #1 = integer shift, #2 = stem color
+\newcommand{\DrawDenseDTSequence}[2]{%
+  \foreach \k/\v in {
+    -7/0.18,
+    -6/0.36,
+    -5/0.58,
+    -4/0.84,
+    -3/0.67,
+    -2/0.28,
+    -1/-0.18,
+     0/-0.62,
+     1/-0.48,
+     2/-0.12,
+     3/0.35,
+     4/0.72,
+     5/0.89,
+     6/0.70,
+     7/0.42
+  }{%
+    \draw[very thick,#2] ({\k+#1},0) -- ({\k+#1},\v);
+    \fill[#2] ({\k+#1},\v) circle (1.55pt);
+    \fill[black] ({\k+#1},0) circle (0.75pt);
+  }%
+}
+
+
+
+
+
+
+
+
+
+% =========================================================
+% DESIGN CONTROL PANEL
+% =========================================================
+
+% -------------------- color palette --------------------
+\definecolor{CourseBlue}{HTML}{2563EB}
+\definecolor{CourseNavy}{HTML}{0F172A}
+\definecolor{CourseSky}{HTML}{EAF2FF}
+\definecolor{CourseGreen}{HTML}{059669}
+\definecolor{CourseMint}{HTML}{E8FFF5}
+\definecolor{CourseOrange}{HTML}{EA580C}
+\definecolor{CourseMaroon}{HTML}{7A0000}
+\definecolor{CourseRed}{HTML}{DC2626}
+
+\definecolor{CourseGray}{HTML}{475569}
+\definecolor{CourseLight}{HTML}{F8FAFC}
+\definecolor{CourseLine}{HTML}{CBD5E1}
+\definecolor{CourseSoft}{HTML}{F1F5F9}
+
+\colorlet{SlideTitleColor}{CourseNavy}
+\colorlet{SlideSubtitleColor}{CourseGray}
+\colorlet{FrameTitleColor}{CourseMaroon}
+\colorlet{AccentColor}{CourseBlue}
+\colorlet{MutedColor}{CourseGray}
+\colorlet{RuleColor}{CourseLine}
+\colorlet{FooterTextColor}{CourseGray}
+
+\colorlet{InfoBoxBg}{CourseSky}
+\colorlet{InfoBoxDraw}{CourseBlue!28}
+\colorlet{SuccessBoxBg}{CourseMint}
+\colorlet{SuccessBoxDraw}{CourseGreen!30}
+\colorlet{NeutralBoxBg}{CourseLight}
+\colorlet{NeutralBoxDraw}{CourseLine}
+\colorlet{WarningBoxBg}{CourseOrange!8}
+\colorlet{WarningBoxDraw}{CourseOrange!35}
+
+% -------------------- aliases used by cards/boxes --------------------
+\colorlet{ThemeBlue}{CourseBlue}
+\colorlet{ThemeGreen}{CourseGreen}
+\colorlet{ThemeOrange}{CourseOrange}
+\colorlet{ThemeNavy}{CourseNavy}
+\colorlet{ThemeMaroon}{CourseMaroon}
+\colorlet{ThemeBlueLight}{CourseSky}
+\colorlet{ThemeGreenLight}{CourseMint}
+\colorlet{ThemeOrangeLight}{CourseOrange!8}
+\colorlet{ThemeLight}{CourseLight}
+\colorlet{ThemeLine}{CourseLine}
+\colorlet{ThemeGray}{CourseGray}
+
+\colorlet{ThemeRed}{CourseRed}
+
+% -------------------- typography controls --------------------
+\newcommand{\DeckMainFont}{\sffamily}
+\newcommand{\DeckTitleSize}{\LARGE}
+\newcommand{\DeckSubtitleSize}{\normalsize}
+\newcommand{\DeckAuthorSize}{\normalsize}
+\newcommand{\DeckInstituteSize}{\small}
+\newcommand{\DeckDateSize}{\small}
+
+\newcommand{\FrameTitleSize}{\Large}
+\newcommand{\FrameTitleSeries}{\bfseries}
+\newcommand{\FrameTitleTopSpace}{0.05em}
+\newcommand{\FrameTitleToRuleSpace}{0.25em}
+\newcommand{\FrameTitleRuleThickness}{0.45pt}
+\newcommand{\FrameTitleAfterRuleSpace}{2pt}
+
+\newcommand{\BodyTextSize}{\normalsize}
+\newcommand{\SmallTextSize}{\scriptsize}
+\newcommand{\FooterTextSize}{\scriptsize}
+
+% -------------------- global beamer setup --------------------
+\setbeamercolor{normal text}{fg=CourseNavy,bg=white}
+\setbeamercolor{structure}{fg=AccentColor}
+
+\setbeamercolor{title}{fg=SlideTitleColor}
+\setbeamercolor{subtitle}{fg=SlideSubtitleColor}
+\setbeamercolor{author}{fg=SlideSubtitleColor}
+\setbeamercolor{institute}{fg=CourseNavy}
+\setbeamercolor{date}{fg=CourseMaroon}
+
+\setbeamercolor{frametitle}{fg=FrameTitleColor,bg=white}
+\setbeamercolor{itemize item}{fg=AccentColor}
+\setbeamercolor{itemize subitem}{fg=AccentColor}
+\setbeamercolor{enumerate item}{fg=AccentColor}
+
+\setbeamerfont{title}{family=\DeckMainFont,series=\bfseries,size=\DeckTitleSize}
+\setbeamerfont{subtitle}{family=\DeckMainFont,size=\DeckSubtitleSize}
+\setbeamerfont{author}{family=\DeckMainFont,size=\DeckAuthorSize}
+\setbeamerfont{institute}{family=\DeckMainFont,size=\DeckInstituteSize}
+\setbeamerfont{date}{family=\DeckMainFont,size=\DeckDateSize}
+
+\setbeamerfont{frametitle}{family=\DeckMainFont,series=\FrameTitleSeries,size=\FrameTitleSize}
+\setbeamerfont{normal text}{family=\DeckMainFont,size=\BodyTextSize}
+\setbeamerfont{footline}{family=\DeckMainFont,size=\FooterTextSize}
+
+\setbeamertemplate{navigation symbols}{}
+
+% -------------------- frame title style --------------------
+\setbeamertemplate{frametitle}{%
+  \vskip\FrameTitleTopSpace%
+  {\usebeamerfont{frametitle}%
+   \usebeamercolor[fg]{frametitle}%
+   \insertframetitle\par}%
+  \vskip\FrameTitleToRuleSpace%
+  \nointerlineskip%
+  {\color{RuleColor}%
+   \hrule height \FrameTitleRuleThickness width \linewidth}%
+  \nointerlineskip%
+  \vskip\FrameTitleAfterRuleSpace%
+}
+
+% -------------------- footline style --------------------
+\newcommand{\FooterLeftText}{}
+\setbeamertemplate{footline}{}
+
+% -------------------- reusable text color commands --------------------
+\newcommand{\blue}[1]{\textcolor{CourseBlue}{#1}}
+\newcommand{\green}[1]{\textcolor{CourseGreen}{#1}}
+\newcommand{\orange}[1]{\textcolor{CourseOrange}{#1}}
+\newcommand{\muted}[1]{\textcolor{MutedColor}{#1}}
+
+% =========================================================
+% CLASSIC BEAMER-STYLE CALLOUT BOXES
+% =========================================================
+
+\newcommand{\CalloutTitleFont}{\large\bfseries}
+\newcommand{\CalloutBodyFont}{\normalsize}
+
+\newcommand{\CalloutArc}{7pt}
+\newcommand{\CalloutRule}{0.55pt}
+
+\newcommand{\CalloutLeftPad}{10pt}
+\newcommand{\CalloutRightPad}{10pt}
+\newcommand{\CalloutTopPad}{9pt}
+\newcommand{\CalloutBottomPad}{9pt}
+
+\newcommand{\CalloutTitleLeftPad}{10pt}
+\newcommand{\CalloutTitleRightPad}{10pt}
+\newcommand{\CalloutTitleTopPad}{2.5pt}
+\newcommand{\CalloutTitleBottomPad}{2.5pt}
+
+\tcbset{
+  calloutbase/.style={
+    enhanced,
+    width=\linewidth,
+    colback=white,
+    coltitle=white,
+    fonttitle=\CalloutTitleFont,
+    fontupper=\CalloutBodyFont,
+    boxrule=\CalloutRule,
+    arc=\CalloutArc,
+    left=\CalloutLeftPad,
+    right=\CalloutRightPad,
+    top=\CalloutTopPad,
+    bottom=\CalloutBottomPad,
+    drop fuzzy shadow,
+    boxed title style={
+      sharp corners=south,
+      rounded corners=north,
+      boxrule=0pt,
+      left=\CalloutTitleLeftPad,
+      right=\CalloutTitleRightPad,
+      top=\CalloutTitleTopPad,
+      bottom=\CalloutTitleBottomPad
+    },
+    attach boxed title to top left={
+      xshift=0pt,
+      yshift=0pt
+    }
+  },
+  calloutcompacttitle/.style={
+    attach boxed title to top left={
+      xshift=0pt,
+      yshift=0pt
+    }
+  },
+  calloutfulltitle/.style={
+    boxed title style={
+      width=\linewidth,
+      boxrule=0pt,
+      sharp corners=south,
+      rounded corners=north,
+      left=\CalloutTitleLeftPad,
+      right=\CalloutTitleRightPad,
+      top=\CalloutTitleTopPad,
+      bottom=\CalloutTitleBottomPad
+    },
+    attach boxed title to top left={
+      xshift=0pt,
+      yshift=0pt
+    },
+    halign title=left
+  },
+  calloutwhitebody/.style={colback=white},
+  calloutshadedblue/.style={colback=ThemeBlueLight},
+  calloutshadedgreen/.style={colback=ThemeGreenLight},
+  calloutshadedorange/.style={colback=ThemeOrangeLight},
+  calloutshadedgray/.style={colback=ThemeLight}
+}
+
+\newtcolorbox{BlueBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeBlue,
+  colbacktitle=ThemeBlue,
+  #1
+}
+
+\newtcolorbox{GreenBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeGreen,
+  colbacktitle=ThemeGreen,
+  #1
+}
+
+\newtcolorbox{OrangeBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeOrange,
+  colbacktitle=ThemeOrange,
+  #1
+}
+
+\newtcolorbox{NavyBox}[2][]{
+  calloutbase,
+  calloutcompacttitle,
+  title={#2},
+  colframe=ThemeNavy,
+  colbacktitle=ThemeNavy,
+  #1
+}
+
+\newtcolorbox{PlainBox}[1][]{
+  calloutbase,
+  title={},
+  colframe=ThemeNavy,
+  colbacktitle=ThemeNavy,
+  #1
+}
+
+% =========================================================
+% MODERN PRESENTATION CARDS
+% =========================================================
+
+\newcommand{\CardArc}{7pt}
+\newcommand{\CardRule}{0.45pt}
+\newcommand{\CardTopRule}{2.2pt}
+
+\newcommand{\CardLeftPad}{8pt}
+\newcommand{\CardRightPad}{8pt}
+\newcommand{\CardTopPad}{8pt}
+\newcommand{\CardBottomPad}{8pt}
+
+\newcommand{\CardNumberSize}{\Huge}
+\newcommand{\CardTitleSize}{\large}
+\newcommand{\CardBodySize}{\normalsize}
+
+\tcbset{
+  moderncardbase/.style={
+    enhanced,
+    width=\linewidth,
+    colback=white,
+    colframe=ThemeLine,
+    boxrule=\CardRule,
+    arc=\CardArc,
+    left=\CardLeftPad,
+    right=\CardRightPad,
+    top=\CardTopPad,
+    bottom=\CardBottomPad,
+    drop fuzzy shadow,
+    frame hidden=false,
+    borderline north={\CardTopRule}{0pt}{#1}
+  }
+}
+
+\newtcolorbox{BlueCard}[1][]{moderncardbase=ThemeBlue,#1}
+\newtcolorbox{GreenCard}[1][]{moderncardbase=ThemeGreen,#1}
+\newtcolorbox{OrangeCard}[1][]{moderncardbase=ThemeOrange,#1}
+\newtcolorbox{NavyCard}[1][]{moderncardbase=ThemeNavy,#1}
+
+\newcommand{\CardNumber}[2]{%
+  {\CardNumberSize\bfseries\textcolor{#1}{#2}}\par
+}
+
+\newcommand{\CardIcon}[2]{%
+  {\Huge\textcolor{#1}{#2}}\par
+}
+
+\newcommand{\CardTitle}[1]{%
+  \vspace{0.15cm}
+  {\CardTitleSize\bfseries #1}\par
+}
+
+\newcommand{\CardText}[1]{%
+  \vspace{0.15cm}
+  {\CardBodySize\color{ThemeGray} #1}\par
+}
+
+
+
+
+% =========================================================
+% HORIZONTAL SIDE CARDS
+% Left color stripe + horizontal heading + wide content area
+% =========================================================
+
+\newenvironment{GreenSideCard}[1]{%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ThemeGreen!65!black,
+    boxrule=0.50pt,
+    arc=5pt,
+    left=10pt,
+    right=10pt,
+    top=8pt,
+    bottom=8pt,
+    borderline west={4pt}{0pt}{ThemeGreen},
+    drop fuzzy shadow
+  ]
+  \noindent
+  \begin{minipage}[c]{0.2\linewidth}
+    \raggedright
+    {\Large\bfseries\color{ThemeGreen}#1}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.74\linewidth}
+    \raggedright
+}{%
+  \end{minipage}
+  \end{tcolorbox}
+}
+
+\newenvironment{OrangeSideCard}[1]{%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ThemeOrange!65!black,
+    boxrule=0.50pt,
+    arc=5pt,
+    left=10pt,
+    right=10pt,
+    top=8pt,
+    bottom=8pt,
+    borderline west={4pt}{0pt}{ThemeOrange},
+    drop fuzzy shadow
+  ]
+  \noindent
+  \begin{minipage}[c]{0.20\linewidth}
+    \raggedright
+    {\Large\bfseries\color{ThemeOrange}#1}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.74\linewidth}
+    \raggedright
+}{%
+  \end{minipage}
+  \end{tcolorbox}
+}
+
+\newenvironment{BlueSideCard}[1]{%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ThemeBlue!65!black,
+    boxrule=0.50pt,
+    arc=5pt,
+    left=10pt,
+    right=10pt,
+    top=8pt,
+    bottom=8pt,
+    borderline west={4pt}{0pt}{ThemeBlue},
+    drop fuzzy shadow
+  ]
+  \noindent
+  \begin{minipage}[c]{0.20\linewidth}
+    \raggedright
+    {\Large\bfseries\color{ThemeBlue}#1}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.74\linewidth}
+    \raggedright
+}{%
+  \end{minipage}
+  \end{tcolorbox}
+}
+
+
+
+
+
+
+
+
+% =========================================================
+% FIGURE PLACEHOLDER HELPERS
+% =========================================================
+
+\newcommand{\MissingFigure}[2]{%
+\begin{tikzpicture}
+  \node[
+    rounded corners=8pt,
+    draw=CourseLine,
+    fill=CourseLight,
+    minimum width=#1,
+    minimum height=#2,
+    align=center,
+    inner sep=8pt
+  ] {
+    \color{CourseGray}
+    \faImage\\[4pt]
+    Placeholder figure\\
+    \scriptsize Replace with your actual file
+  };
+\end{tikzpicture}%
+}
+
+\newcommand{\MaybeFigure}[3]{%
+\IfFileExists{#1}{%
+  \includegraphics[width=#2,height=#3,keepaspectratio]{#1}%
+}{%
+  \MissingFigure{#2}{#3}%
+}%
+}
+
+\newcommand{\SignalPlaceholder}[3]{%
+\begin{tcolorbox}[
+  enhanced,
+  width=\linewidth,
+  height=#1,
+  colback=#2!8,
+  colframe=#2!45,
+  boxrule=0.55pt,
+  arc=7pt,
+  left=5pt,
+  right=5pt,
+  top=5pt,
+  bottom=5pt,
+  halign=center,
+  valign=center,
+  drop fuzzy shadow
+]
+{\Large\textcolor{#2}{\faImage}}\\[4pt]
+{\bfseries #3}\\[-1pt]
+{\scriptsize\color{ThemeGray} image placeholder}
+\end{tcolorbox}%
+}
+
+\newcommand{\TinySignalSketchCT}{%
+\begin{tikzpicture}[x=0.62cm,y=0.40cm]
+  \draw[-{Latex[length=2mm]},CourseGray] (-2.4,0) -- (2.6,0) node[right] {\scriptsize $t$};
+  \draw[-{Latex[length=2mm]},CourseGray] (0,-1.35) -- (0,1.45) node[above] {\scriptsize $x(t)$};
+  \draw[very thick,CourseBlue,smooth,domain=-2.1:2.2,samples=80]
+    plot (\x,{0.55*sin(150*\x)+0.35*cos(70*\x)});
+\end{tikzpicture}%
+}
+
+\newcommand{\TinySignalSketchDT}{%
+\begin{tikzpicture}[x=0.40cm,y=0.40cm]
+  \draw[-{Latex[length=2mm]},CourseGray] (-5.4,0) -- (5.8,0) node[right] {\scriptsize $n$};
+  \draw[-{Latex[length=2mm]},CourseGray] (0,-1.4) -- (0,1.5) node[above] {\scriptsize $x[n]$};
+  \foreach \n/\v in {-5/-0.4,-4/-0.8,-3/-0.15,-2/0.55,-1/0.9,0/1.2,1/0.75,2/0.35,3/-0.25,4/-0.55,5/-0.15}{
+    \draw[very thick,CourseGreen] (\n,0) -- (\n,\v);
+    \fill[CourseGreen] (\n,\v) circle (2pt);
+  }
+\end{tikzpicture}%
+}
+
+% =========================================================
+% TITLE METADATA
+% =========================================================
+
+
+
+
+\title{Lecture 4: Convolution, Causality, and Stability}
+\vspace{6cm}
+\subtitle{CSE 219: Signals and Linear Systems}
+
+\author{Anik Saha\\[-1pt]{\small Adjunct Lecturer, Department of CSE, BUET}}
+% \institute{Department of Computer Science and Engineering\\Bangladesh University of Engineering and Technology}
+\date{}
+
+\begin{document}
+
+
+% =========================================================
+% TITLE
+% =========================================================
+
+\begin{frame}[plain]
+\vspace{0.55cm}
+\titlepage
+
+% \vspace{-0.15cm}
+% \begin{center}
+% \begin{BlueBox}[width=0.78\textwidth,halign=center,calloutshadedblue,fontupper=\large]{}
+% A first language for describing information that changes.
+% \end{BlueBox}
+% \end{center}
+
+
+\end{frame}
+
+
+\begin{frame}{Recall: Keep the first signal just as is, flip the second, slide rightward, find overlaps, then multiply-and-add!}
+
+\begin{center}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figs/convolution-penguin-shark.png}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
+
+% --------------------------------------------------------
+\begin{frame}{Recall: discrete-time convolution is sliding multiply-and-add}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+For two discrete-time signals \(x[n]\) and \(h[n]\), their convolution is
+\[
+\boxed{\displaystyle
+y[n]=(x*h)[n]=\sum_{k=-\infty}^{\infty}x[k]\,h[n-k].
+}
+\]
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{What the formula is saying}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=1cm,y=0.90cm,every node/.style={font=\scriptsize}]
+
+\node[
+  draw=ThemeBlue,
+  fill=ThemeBlue!10,
+  rounded corners=5pt,
+  very thick,
+  minimum width=2.6cm,
+  minimum height=0.75cm,
+  align=center
+] (x) at (-4.2,0) {\Large \(x[k]\)};
+
+\node[
+  draw=ThemeOrange,
+  fill=ThemeOrange!10,
+  rounded corners=5pt,
+  very thick,
+  minimum width=2.6cm,
+  minimum height=0.75cm,
+  align=center
+] (h) at (0,0) {\Large \(h[n-k]\)};
+
+\node[
+  draw=ThemeGreen,
+  fill=ThemeGreen!10,
+  rounded corners=5pt,
+  very thick,
+  minimum width=2.7cm,
+  minimum height=0.75cm,
+  align=center
+] (sum) at (4.25,0) {\Large \(y[n]\)};
+
+\draw[-{Latex[length=2.4mm]},very thick,ThemeGray] (x) -- (h)
+  node[midway,above] {multiply};
+\draw[-{Latex[length=2.4mm]},very thick,ThemeGray] (h) -- (sum)
+  node[midway,above] {add over \(k\)};
+
+\node[ThemeBlue] at (0,-1.05)
+  {For each fixed \(n\), the sum produces one output sample \(y[n]\).};
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Convolution gives a whole output signal, one value at a time}
+
+\begin{center}
+\begin{BlueCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+% \CardTitle{To compute one output sample, fix \(n\), then sweep over \(k\)}
+
+% \vspace{0.02cm}
+
+\begin{columns}[c,totalwidth=0.96\textwidth]
+
+% ---------------- LEFT PANEL ----------------
+\begin{column}{0.5\textwidth}
+\begin{GreenCard}[
+  halign=center,
+  top=8pt,
+  bottom=8pt
+]
+\CardTitle{Sweep over the input index \(k\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.44cm,y=0.55cm,every node/.style={font=\scriptsize}]
+
+  % axis
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-6.0,0) -- (6.5,0) node[right] {$k$};
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-1.45) -- (0,2.15) node[above] {$x[k]$};
+
+  % continuation dots
+  \node[ThemeGray,font=\large] at (-5.45,0.75) {$\cdots$};
+  \node[ThemeGray,font=\large] at (5.75,0.75) {$\cdots$};
+
+  % shown samples
+  \foreach \k/\v in {-4/0.55,-3/1.10,-2/-0.65,-1/0.90,0/1.55,1/0.45,2/-0.85,3/1.20,4/0.70}{
+    \draw[very thick,ThemeGreen] (\k,0) -- (\k,\v);
+    \fill[ThemeGreen] (\k,\v) circle (2.0pt);
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  % ticks
+  \foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,0.05) -- (\k,-0.05);
+  }
+
+  \node[below] at (-4,-0.06) {$-4$};
+  \node[below] at (0,-0.06) {$0$};
+  \node[below] at (4,-0.06) {$4$};
+
+  % sweep line
+  \draw[{Latex[length=1.6mm]}-{Latex[length=1.6mm]},very thick,ThemeOrange]
+    (-4.6,-1.58) -- (4.6,-1.58);
+
+  \node[ThemeOrange,font=\bfseries] at (0,-2.12)
+    {sweep over all \(k\)};
+
+\end{tikzpicture}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% For a fixed output location, we inspect all possible input indices \(k\).
+% }
+
+\end{GreenCard}
+\end{column}
+
+\hfill
+
+% ---------------- RIGHT PANEL ----------------
+\begin{column}{0.44\textwidth}
+\begin{OrangeCard}[
+  halign=center,
+  top=8pt,
+  bottom=8pt
+]
+\CardTitle{Fix one output index}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.52cm,y=0.55cm,every node/.style={font=\scriptsize}]
+
+  % output axis
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-3.5,0) -- (6.0,0) node[right] {$n$};
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-0.20) -- (0,2.40) node[above] {$y[n]$};
+
+  % gray unknown output samples
+  \foreach \n in {-3,-2,-1,0,1,2,4,5}{
+    \fill[ThemeGray] (\n,0) circle (1.2pt);
+    \draw[black] (\n,0.05) -- (\n,-0.05);
+  }
+
+  % highlighted fixed n=3
+  \draw[densely dashed,ThemeOrange,very thick] (3,0) -- (3,2.05);
+
+  \draw[very thick,ThemeBlue] (3,0) -- (3,1.45);
+  \fill[ThemeBlue] (3,1.45) circle (2.4pt);
+  \fill[black] (3,0) circle (0.75pt);
+
+  \node[below] at (0,-0.06) {$0$};
+  \node[below] at (3,-0.06) {$3$};
+  \node[ThemeOrange,above] at (3,2.08) {fixed \(n=3\)};
+  \node[ThemeBlue,right] at (3.18,1.45) {\(y[3]\)};
+
+  \node[ThemeGray,font=\large] at (-3.05,0.75) {$\cdots$};
+  \node[ThemeGray,font=\large] at (5.45,0.75) {$\cdots$};
+
+\end{tikzpicture}
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% This one highlighted stem is one number: \(y[3]\).
+% }
+
+\end{OrangeCard}
+\end{column}
+
+\end{columns}
+
+\vspace{0.10cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\large
+]{}
+% For example, when \(n=3\),
+\(
+y[3]=\sum_{k=-\infty}^{\infty}x[k]\,h[3-k]
+\)
+\end{BlueBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For fixed \(n\), \(h[n-k]\) is made by reflect-then-right-shift}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% When computing one output value \(y[n]\), \(n\) is fixed.  
+% Then \(h[n-k]\) is viewed as a function of the sweeping variable \(k\).
+% \end{BlueBox}
+
+% \vspace{0.08cm}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.94\textwidth,
+  halign=center,
+  top=9pt,
+  bottom=9pt
+]
+% \CardTitle{From \(h[k]\) to \(h[n-k]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.62cm,every node/.style={font=\scriptsize}]
+
+% =========================================================
+% Row 1: h[k]
+% =========================================================
+\begin{scope}[yshift=2.25cm]
+
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-5.15,0.65) {\(h[k]\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black]
+    (-4.6,0) -- (4.9,0) node[right] {$k$};
+
+  \foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,0.05) -- (\k,-0.05);
+  }
+
+  \foreach \k/\v in {0/1,1/2,2/1,3/0.5}{
+    \draw[very thick,ThemeBlue] (\k,0) -- (\k,\v);
+    \fill[ThemeBlue] (\k,\v) circle (2.0pt);
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \node[below] at (0,-0.08) {$0$};
+  \node[below] at (3,-0.08) {$3$};
+
+\end{scope}
+
+
+% =========================================================
+% Row 2: h[-k]
+% =========================================================
+\begin{scope}[yshift=0.20cm]
+
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-5.15,0.65) {\(h[-k]\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black]
+    (-4.6,0) -- (4.9,0) node[right] {$k$};
+
+  \foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,0.05) -- (\k,-0.05);
+  }
+
+  % reflected version of h[k]
+  \foreach \k/\v in {0/1,-1/2,-2/1,-3/0.5}{
+    \draw[very thick,ThemeOrange] (\k,0) -- (\k,\v);
+    \fill[ThemeOrange] (\k,\v) circle (2.0pt);
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \node[below] at (0,-0.08) {$0$};
+  \node[below] at (-3,-0.08) {$-3$};
+
+\end{scope}
+
+
+% =========================================================
+% Row 3: h[n-k], example n=2
+% =========================================================
+\begin{scope}[yshift=-1.85cm]
+
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-5.15,0.65) {\(h[2-k]\)};
+
+  \draw[-{Latex[length=1.3mm]},thick,black]
+    (-4.6,0) -- (4.9,0) node[right] {$k$};
+
+  \foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+    \draw[black] (\k,0.05) -- (\k,-0.05);
+  }
+
+  % h[-k] shifted right by 2
+  \foreach \k/\v in {2/1,1/2,0/1,-1/0.5}{
+    \draw[very thick,ThemeGreen] (\k,0) -- (\k,\v);
+    \fill[ThemeGreen] (\k,\v) circle (2.0pt);
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \node[below] at (0,-0.08) {$0$};
+  \node[below] at (2,-0.08) {$2$};
+  \node[ThemeGreen,above] at (5,1.10) {\(h[0]\) now sits at \(k=2\)};
+
+\end{scope}
+
+
+% =========================================================
+% Arrows and annotations
+% =========================================================
+% \draw[-{Latex[length=2mm]},very thick,ThemeOrange]
+%   (5.25,2.90) -- (5.25,1.15);
+% \node[ThemeOrange,align=center,font=\bfseries] at (6.35,2.03) {reflect\\around \(0\)};
+
+% \draw[-{Latex[length=2mm]},very thick,ThemeGreen]
+%   (5.25,0.85) -- (5.25,-0.95);
+% \node[ThemeGreen,align=center,font=\bfseries] at (6.45,-0.05) {shift right\\by \(n=2\)};
+
+\end{tikzpicture}
+
+% \vspace{0.06cm}
+
+% \begin{GreenBox}[
+%   calloutshadedgreen,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% In general: \(h[k]\rightarrow h[-k]\rightarrow h[n-k]\).
+% \end{GreenBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The continuous-time version replaces the sum by an integral}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+For continuous-time signals, the idea is the same:  
+reflect, shift, multiply, and add continuously.
+\end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.90\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Continuous-time convolution}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+\boxed{\displaystyle
+y(t)=(x*h)(t)=\int_{-\infty}^{\infty}x(\tau)\,h(t-\tau)\,d\tau
+}
+\]
+}
+
+% \vspace{0.08cm}
+
+% \begin{columns}[T,totalwidth=0.88\textwidth]
+
+% \begin{column}{0.48\textwidth}
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% Discrete time:
+% \[
+% \sum_k x[k]h[n-k]
+% \]
+% \end{BlueBox}
+% \end{column}
+
+% \begin{column}{0.48\textwidth}
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% Continuous time:
+% \[
+% \int x(\tau)h(t-\tau)\,d\tau
+% \]
+% \end{OrangeBox}
+% \end{column}
+
+% \end{columns}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For a fixed \(t\), sweep along \(\tau\) and integrate along the overlap}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Fix \(t\), then slide \(h(t-\tau)\) along the \(\tau\)-axis}
+
+% \vspace{0.06cm}
+
+\begin{tikzpicture}[x=1.00cm,y=1.00cm,every node/.style={font=\scriptsize}]
+
+% ------------------------------------------------
+% main axis
+% ------------------------------------------------
+\draw[-{Latex[length=1.7mm]},thick,black]
+  (-3.9,0) -- (5.0,0) node[right] {$\tau$};
+
+\draw[-{Latex[length=1.7mm]},thick,black]
+  (0,-0.12) -- (0,1.75);
+
+\foreach \x/\lab in {-3/{},-2/{},-1/{},0/{0},1/{},2/{},3/{},4/{}}{
+  \draw[black] (\x,0.04) -- (\x,-0.04);
+  \node[below] at (\x,-0.06) {\(\lab\)};
+}
+
+% ------------------------------------------------
+% x(tau): blue rectangular pulse from -2 to 2
+% ------------------------------------------------
+\fill[ThemeBlue!12] (-2,0) rectangle (2,1.00);
+\draw[very thick,ThemeBlue] (-2,0) -- (-2,1.00) -- (2,1.00) -- (2,0);
+
+\node[ThemeBlue,font=\bfseries] at (-1.15,1.25) {\(x(\tau)\)};
+
+% ------------------------------------------------
+% h(t-tau): orange rectangular pulse from 0.8 to 3.8
+% ------------------------------------------------
+\fill[ThemeOrange!15] (0.8,0) rectangle (3.8,0.72);
+\draw[very thick,ThemeOrange] (0.8,0) -- (0.8,0.72) -- (3.8,0.72) -- (3.8,0);
+
+\node[ThemeOrange,font=\bfseries] at (3.00,0.96) {\(h(t-\tau)\)};
+
+% ------------------------------------------------
+% overlap region
+% ------------------------------------------------
+\fill[ThemeGreen!25] (0.8,0) rectangle (2,0.72);
+\draw[very thick,ThemeGreen] (0.8,0) rectangle (2,0.72);
+
+\node[ThemeGreen,font=\bfseries] at (1.40,0.37) {overlap};
+
+% small arrows showing sliding
+\draw[-{Latex[length=1.9mm]},very thick,ThemeOrange]
+  (2.15,-0.45) -- (3.25,-0.45);
+
+\node[ThemeOrange,font=\bfseries] at (2.70,-0.72) {slide as \(t\) changes};
+
+% labels for support endpoints
+\node[below,ThemeBlue] at (-2,-0.10) {\(a\)};
+\node[below,ThemeBlue] at (2,-0.10) {\(b\)};
+\node[below,ThemeOrange] at (0.8,-0.10) {\(t-d\)};
+\node[below,ThemeOrange] at (3.8,-0.10) {\(t-c\)};
+
+\end{tikzpicture}
+
+\vspace{0.10cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+For this one fixed \(t\),
+\[
+y(t)=\int_{-\infty}^{\infty} x(\tau)\,h(t-\tau)\,d\tau
+\]
+% is the area under the product \(x(\tau)h(t-\tau)\).
+\end{GreenBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Discrete and continuous convolution follow the same recipe}
+
+\begin{center}
+
+\begin{GreenSideCard}{1}
+{\large\bfseries Choose the output location.}
+
+\vspace{0.03cm}
+
+{\normalsize
+For discrete time, choose \(n\).  
+For continuous time, choose \(t\).
+}
+\end{GreenSideCard}
+
+\vspace{0.10cm}
+
+\begin{OrangeSideCard}{2}
+{\large\bfseries Reflect and shift the second signal.}
+
+\vspace{0.03cm}
+
+{\normalsize
+Discrete: \(h[k]\to h[-k]\to h[n-k]\).  
+Continuous: \(h(\tau)\to h(-\tau)\to h(t-\tau)\).
+}
+\end{OrangeSideCard}
+
+\vspace{0.10cm}
+
+\begin{BlueSideCard}{3}
+{\large\bfseries Multiply where they overlap, then add.}
+
+\vspace{0.03cm}
+
+{\normalsize
+Discrete: sum over \(k\).  
+Continuous: integrate over \(\tau\).
+}
+\end{BlueSideCard}
+
+% \vspace{0.12cm}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% Repeating this for all \(n\) or all \(t\) gives the whole output signal.
+% \end{BlueBox}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+% \vfill
+
+\begin{center}
+
+\begin{BlueCard}[
+  width=\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+
+{\Large\bfseries Please try this beautiful interactive convolution demo!}\par
+
+\vspace{0.24cm}
+
+{\large
+\href{https://phiresky.github.io/convolution-demo/}
+{\texttt{https://phiresky.github.io/convolution-demo/}}
+\par
+}
+
+\vspace{0.24cm}
+
+\href{https://phiresky.github.io/convolution-demo/}{%
+  \includegraphics[width=0.75\textwidth]{figs/convolution-demo.png}
+}
+
+% \vspace{0.14cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% Click the link or the screenshot to open the demo.
+% \end{OrangeBox}
+
+\end{BlueCard}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+\vfill
+
+\begin{center}
+
+{\fontsize{30}{34}\selectfont\bfseries\color{FrameTitleColor}
+Practice Problems on Convolution\par}
+
+% \vspace{0.25cm}
+
+% {\Large\color{ThemeGray}
+% Convolution is simply a mathematical operation that appears very universally.\par}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice (Example 2.2)}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+For the two signals below, compute
+\[
+y[n]=x[n]*h[n]=\sum_{k=-\infty}^{\infty}x[k]h[n-k].
+\]
+\end{OrangeBox}
+
+\vspace{0.02cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% x[k]
+\begin{column}{0.48\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Input \(x[k]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.72cm,y=0.55cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-3.2,0) -- (4.2,0) node[right] {$k$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.15) -- (0,2.45);
+
+  \foreach \k in {-3,-2,-1,0,1,2,3}{
+    \fill[black] (\k,0) circle (0.8pt);
+    \draw[black] (\k,0.04) -- (\k,-0.04);
+    \node[below] at (\k,-0.06) {$\k$};
+  }
+
+  \draw[very thick,ThemeGreen] (0,0) -- (0,0.5);
+  \fill[ThemeGreen] (0,0.5) circle (2.1pt);
+  \node[left] at (0,0.5) {\(0.5\)};
+
+  \draw[very thick,ThemeGreen] (1,0) -- (1,2);
+  \fill[ThemeGreen] (1,2) circle (2.1pt);
+  \node[above] at (1,2.05) {\(2\)};
+
+  \node[ThemeGreen,font=\bfseries] at (2.7,1.60) {\(x[k]\)};
+\end{tikzpicture}
+
+% \[
+% x[0]=0.5,\qquad x[1]=2.
+% \]
+
+\end{GreenCard}
+\end{column}
+
+% h[k]
+\begin{column}{0.48\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Impulse response \(h[k]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.72cm,y=0.55cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-3.2,0) -- (4.2,0) node[right] {$k$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.15) -- (0,1.55);
+
+  \foreach \k in {-3,-2,-1,0,1,2,3}{
+    \fill[black] (\k,0) circle (0.8pt);
+    \draw[black] (\k,0.04) -- (\k,-0.04);
+    \node[below] at (\k,-0.06) {$\k$};
+  }
+
+  \foreach \k in {0,1,2}{
+    \draw[very thick,ThemeBlue] (\k,0) -- (\k,1);
+    \fill[ThemeBlue] (\k,1) circle (2.1pt);
+  }
+
+  \node[left] at (0,1) {\(1\)};
+  \node[ThemeBlue,font=\bfseries] at (2.9,1.18) {\(h[k]\)};
+\end{tikzpicture}
+
+% \[
+% h[0]=h[1]=h[2]=1.
+% \]
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\vspace{0.10cm}
+
+\begin{BlueBox}[calloutshadedblue,halign=center,fontupper=\large]{}
+Use the sliding view: reflect \(h[k]\), shift it to \(h[n-k]\), multiply with \(x[k]\), then add.
+\end{BlueBox}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer setup: \(h[n-k]\) is the reflected signal shifted by \(n\)}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+For each fixed \(n\), draw \(h[n-k]\) as a function of \(k\).
+\end{BlueBox}
+
+\vspace{0.10cm}
+
+\begin{center}
+\begin{OrangeCard}[width=0.94\textwidth,halign=center,top=10pt,bottom=10pt]
+% \CardTitle{Reflect first, then slide}
+
+% \vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.72cm,y=0.55cm,every node/.style={font=\scriptsize}]
+
+% ---------------- h[k]
+\begin{scope}[yshift=2.35cm]
+  \node[anchor=east,ThemeBlue,font=\bfseries] at (-4.0,0.55) {\(h[k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.4,0) -- (4.0,0) node[right] {$k$};
+
+  \foreach \k in {-2,-1,0,1,2,3}{
+    \fill[black] (\k,0) circle (0.75pt);
+    \node[below] at (\k,-0.06) {$\k$};
+  }
+
+  \foreach \k in {0,1,2}{
+    \draw[very thick,ThemeBlue] (\k,0) -- (\k,1);
+    \fill[ThemeBlue] (\k,1) circle (2pt);
+  }
+\end{scope}
+
+% ---------------- h[-k]
+\begin{scope}[yshift=0.45cm]
+  \node[anchor=east,ThemeOrange,font=\bfseries] at (-4.0,0.55) {\(h[-k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.4,0) -- (4.0,0) node[right] {$k$};
+
+  \foreach \k in {-2,-1,0,1,2,3}{
+    \fill[black] (\k,0) circle (0.75pt);
+    \node[below] at (\k,-0.06) {$\k$};
+  }
+
+  \foreach \k in {-2,-1,0}{
+    \draw[very thick,ThemeOrange] (\k,0) -- (\k,1);
+    \fill[ThemeOrange] (\k,1) circle (2pt);
+  }
+
+  \draw[-{Latex[length=1.6mm]},very thick,ThemeOrange] (1.4,0.65) -- (2.35,0.65);
+  \node[ThemeOrange,above] at (1.88,0.74) {shift by \(n\)};
+\end{scope}
+
+% ---------------- h[n-k]
+\begin{scope}[yshift=-1.45cm]
+  \node[anchor=east,ThemeGreen,font=\bfseries] at (-4.0,0.55) {\(h[n-k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-3.4,0) -- (4.0,0) node[right] {$k$};
+
+  \foreach \k in {-2,-1,0,1,2,3}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \draw[very thick,ThemeGreen] (0.55,0) -- (0.55,1);
+  \draw[very thick,ThemeGreen] (1.55,0) -- (1.55,1);
+  \draw[very thick,ThemeGreen] (2.55,0) -- (2.55,1);
+  \fill[ThemeGreen] (0.55,1) circle (2pt);
+  \fill[ThemeGreen] (1.55,1) circle (2pt);
+  \fill[ThemeGreen] (2.55,1) circle (2pt);
+
+  \node[below] at (0.55,-0.06) {\(n-2\)};
+  \node[below] at (1.55,-0.06) {\(n-1\)};
+  \node[below] at (2.55,-0.06) {\(n\)};
+\end{scope}
+
+\end{tikzpicture}
+
+\vspace{0.04cm}
+
+\[
+h[n-k]\neq 0
+\quad\text{only at}\quad
+k=n-2,\;n-1,\;n.
+\]
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: start sliding \(h[n-k]\) past \(x[k]\)}
+
+\begin{center}
+
+% ---------- n < 0 ----------
+\begin{BlueCard}[width=0.94\textwidth,halign=center,top=7pt,bottom=7pt]
+\CardTitle{\(n<0\): no overlap}
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.52cm,every node/.style={font=\scriptsize}]
+
+% ---------------- top axis: x[k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,1.35) -- (4.7,1.35) node[right] {$k$};
+\node[anchor=east,ThemeGreen,font=\bfseries] at (-4.9,1.85) {\(x[k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,1.35) circle (0.65pt);
+}
+
+\draw[very thick,ThemeGreen] (0,1.35) -- (0,1.80);
+\fill[ThemeGreen] (0,1.80) circle (1.8pt);
+\node[above] at (0,1.85) {\(0.5\)};
+
+\draw[very thick,ThemeGreen] (1,1.35) -- (1,2.55);
+\fill[ThemeGreen] (1,2.55) circle (1.8pt);
+\node[above] at (1,2.60) {\(2\)};
+
+% ---------------- bottom axis: h[n-k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,-0.75) -- (4.7,-0.75) node[right] {$k$};
+\node[anchor=east,ThemeOrange,font=\bfseries] at (-4.9,-0.25) {\(h[n-k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,-0.75) circle (0.65pt);
+  \node[below] at (\k,-0.84) {$\k$};
+}
+
+% example n=-1, so positions are -3,-2,-1
+\foreach \k in {-3,-2,-1}{
+  \draw[very thick,ThemeOrange] (\k,-0.75) -- (\k,0.05);
+  \fill[ThemeOrange] (\k,0.05) circle (1.8pt);
+}
+
+\node[ThemeBlue,font=\large\bfseries] at (5.80,0.55) {\(y[n]=0\)};
+% \node[ThemeGray] at (0,-2.35) {for \(n<0\), the two signals do not share any nonzero overlap of \(k\)};
+
+\end{tikzpicture}
+
+For \(n<0\), the two signals do not share any nonzero overlap of \(k\)
+
+\end{BlueCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: start sliding \(h[n-k]\) past \(x[k]\)}
+
+\begin{center}
+
+% ---------- n = 0 ----------
+\begin{GreenCard}[width=0.94\textwidth,halign=center,top=7pt,bottom=7pt]
+\CardTitle{\(n=0\): one overlap}
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.52cm,every node/.style={font=\scriptsize}]
+
+% ---------------- top axis: x[k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,1.35) -- (4.7,1.35) node[right] {$k$};
+\node[anchor=east,ThemeGreen,font=\bfseries] at (-4.9,1.85) {\(x[k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,1.35) circle (0.65pt);
+}
+
+\draw[very thick,ThemeGreen] (0,1.35) -- (0,1.80);
+\fill[ThemeGreen] (0,1.80) circle (1.8pt);
+\node[above] at (0,1.85) {\(0.5\)};
+
+\draw[very thick,ThemeGreen] (1,1.35) -- (1,2.55);
+\fill[ThemeGreen] (1,2.55) circle (1.8pt);
+\node[above] at (1,2.60) {\(2\)};
+
+% ---------------- bottom axis: h[0-k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,-0.75) -- (4.7,-0.75) node[right] {$k$};
+\node[anchor=east,ThemeOrange,font=\bfseries] at (-4.9,-0.25) {\(h[0-k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,-0.75) circle (0.65pt);
+  \node[below] at (\k,-0.84) {$\k$};
+}
+
+% n=0, positions -2,-1,0
+\foreach \k in {-2,-1,0}{
+  \draw[very thick,ThemeOrange] (\k,-0.75) -- (\k,0.05);
+  \fill[ThemeOrange] (\k,0.05) circle (1.8pt);
+}
+
+% overlap guide
+\draw[densely dashed,very thick,ThemeBlue] (0,1.80) -- (0,0.05);
+\node[ThemeBlue,font=\bfseries] at (0.55,0.55) {overlap};
+
+\node[ThemeBlue,font=\large\bfseries] at (5.85,0.55) {\(y[0]=0.5 \times1 = 0.5\)};
+
+\end{tikzpicture}
+\end{GreenCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: when the signals overlap more, the sum grows}
+
+\begin{center}
+
+% ---------- n = 1 ----------
+\begin{OrangeCard}[width=0.94\textwidth,halign=center,top=7pt,bottom=7pt]
+\CardTitle{\(n=1\): two overlaps}
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.52cm,every node/.style={font=\scriptsize}]
+
+% ---------------- top axis: x[k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,1.35) -- (4.7,1.35) node[right] {$k$};
+\node[anchor=east,ThemeGreen,font=\bfseries] at (-4.9,1.85) {\(x[k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,1.35) circle (0.65pt);
+}
+
+\draw[very thick,ThemeGreen] (0,1.35) -- (0,1.80);
+\fill[ThemeGreen] (0,1.80) circle (1.8pt);
+\node[above] at (0,1.85) {\(0.5\)};
+
+\draw[very thick,ThemeGreen] (1,1.35) -- (1,2.55);
+\fill[ThemeGreen] (1,2.55) circle (1.8pt);
+\node[above] at (1,2.60) {\(2\)};
+
+% ---------------- bottom axis: h[1-k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,-0.75) -- (4.7,-0.75) node[right] {$k$};
+\node[anchor=east,ThemeOrange,font=\bfseries] at (-4.9,-0.25) {\(h[1-k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,-0.75) circle (0.65pt);
+  \node[below] at (\k,-0.84) {$\k$};
+}
+
+% n=1, positions -1,0,1
+\foreach \k in {-1,0,1}{
+  \draw[very thick,ThemeOrange] (\k,-0.75) -- (\k,0.05);
+  \fill[ThemeOrange] (\k,0.05) circle (1.8pt);
+}
+
+% overlap guides
+\foreach \k in {0,1}{
+  \draw[densely dashed,very thick,ThemeBlue] (\k,1.80) -- (\k,0.05);
+}
+
+\node[ThemeBlue,font=\large\bfseries] at (6.05,0.55) {\(y[1]=0.5+2=2.5\)};
+
+\end{tikzpicture}
+\end{OrangeCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: when the signals overlap more, the sum grows}
+
+\begin{center}
+
+
+% ---------- n = 2 ----------
+\begin{OrangeCard}[width=0.94\textwidth,halign=center,top=7pt,bottom=7pt]
+\CardTitle{\(n=2\): still two overlaps}
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.52cm,every node/.style={font=\scriptsize}]
+
+% ---------------- top axis: x[k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,1.35) -- (4.7,1.35) node[right] {$k$};
+\node[anchor=east,ThemeGreen,font=\bfseries] at (-4.9,1.85) {\(x[k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,1.35) circle (0.65pt);
+}
+
+\draw[very thick,ThemeGreen] (0,1.35) -- (0,1.80);
+\fill[ThemeGreen] (0,1.80) circle (1.8pt);
+\node[above] at (0,1.85) {\(0.5\)};
+
+\draw[very thick,ThemeGreen] (1,1.35) -- (1,2.55);
+\fill[ThemeGreen] (1,2.55) circle (1.8pt);
+\node[above] at (1,2.60) {\(2\)};
+
+% ---------------- bottom axis: h[2-k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,-0.75) -- (4.7,-0.75) node[right] {$k$};
+\node[anchor=east,ThemeOrange,font=\bfseries] at (-4.9,-0.25) {\(h[2-k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,-0.75) circle (0.65pt);
+  \node[below] at (\k,-0.84) {$\k$};
+}
+
+% n=2, positions 0,1,2
+\foreach \k in {0,1,2}{
+  \draw[very thick,ThemeOrange] (\k,-0.75) -- (\k,0.05);
+  \fill[ThemeOrange] (\k,0.05) circle (1.8pt);
+}
+
+% overlap guides
+\foreach \k in {0,1}{
+  \draw[densely dashed,very thick,ThemeBlue] (\k,1.80) -- (\k,0.05);
+}
+
+\node[ThemeBlue,font=\large\bfseries] at (6.05,0.55) {\(y[2]=0.5+2=2.5\)};
+
+\end{tikzpicture}
+\end{OrangeCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: after the last overlap, the output returns to zero}
+
+\begin{center}
+
+% ---------- n = 3 ----------
+\begin{GreenCard}[width=0.94\textwidth,halign=center,top=7pt,bottom=7pt]
+\CardTitle{\(n=3\): one overlap}
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.52cm,every node/.style={font=\scriptsize}]
+
+% ---------------- top axis: x[k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,1.35) -- (4.7,1.35) node[right] {$k$};
+\node[anchor=east,ThemeGreen,font=\bfseries] at (-4.9,1.85) {\(x[k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,1.35) circle (0.65pt);
+}
+
+\draw[very thick,ThemeGreen] (0,1.35) -- (0,1.80);
+\fill[ThemeGreen] (0,1.80) circle (1.8pt);
+\node[above] at (0,1.85) {\(0.5\)};
+
+\draw[very thick,ThemeGreen] (1,1.35) -- (1,2.55);
+\fill[ThemeGreen] (1,2.55) circle (1.8pt);
+\node[above] at (1,2.60) {\(2\)};
+
+% ---------------- bottom axis: h[3-k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,-0.75) -- (4.7,-0.75) node[right] {$k$};
+\node[anchor=east,ThemeOrange,font=\bfseries] at (-4.9,-0.25) {\(h[3-k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4}{
+  \fill[black] (\k,-0.75) circle (0.65pt);
+  \node[below] at (\k,-0.84) {$\k$};
+}
+
+% n=3, positions 1,2,3
+\foreach \k in {1,2,3}{
+  \draw[very thick,ThemeOrange] (\k,-0.75) -- (\k,0.05);
+  \fill[ThemeOrange] (\k,0.05) circle (1.8pt);
+}
+
+% overlap guide
+\draw[densely dashed,very thick,ThemeBlue] (1,2.55) -- (1,0.05);
+
+\node[ThemeBlue,font=\large\bfseries] at (5.85,0.55) {\(y[3]=2\)};
+
+\end{tikzpicture}
+\end{GreenCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: after the last overlap, the output returns to zero}
+
+\begin{center}
+
+% ---------- n > 3 ----------
+\begin{BlueCard}[width=0.94\textwidth,halign=center,top=7pt,bottom=7pt]
+\CardTitle{\(n>3\): no overlap again}
+
+\vspace{0.02cm}
+
+\begin{tikzpicture}[x=0.58cm,y=0.52cm,every node/.style={font=\scriptsize}]
+
+% ---------------- top axis: x[k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,1.35) -- (5.4,1.35) node[right] {$k$};
+\node[anchor=east,ThemeGreen,font=\bfseries] at (-4.9,1.85) {\(x[k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4,5}{
+  \fill[black] (\k,1.35) circle (0.65pt);
+}
+
+\draw[very thick,ThemeGreen] (0,1.35) -- (0,1.80);
+\fill[ThemeGreen] (0,1.80) circle (1.8pt);
+\node[above] at (0,1.85) {\(0.5\)};
+
+\draw[very thick,ThemeGreen] (1,1.35) -- (1,2.55);
+\fill[ThemeGreen] (1,2.55) circle (1.8pt);
+\node[above] at (1,2.60) {\(2\)};
+
+% ---------------- bottom axis: h[n-k]
+\draw[-{Latex[length=1.2mm]},thick,black] (-4.7,-0.75) -- (5.4,-0.75) node[right] {$k$};
+\node[anchor=east,ThemeOrange,font=\bfseries] at (-4.9,-0.25) {\(h[n-k]\)};
+
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4,5}{
+  \fill[black] (\k,-0.75) circle (0.65pt);
+  \node[below] at (\k,-0.84) {$\k$};
+}
+
+% example n=4, positions 2,3,4
+\foreach \k in {2,3,4}{
+  \draw[very thick,ThemeOrange] (\k,-0.75) -- (\k,0.05);
+  \fill[ThemeOrange] (\k,0.05) circle (1.8pt);
+}
+
+\node[ThemeBlue,font=\large\bfseries] at (6.25,0.55) {\(y[n]=0\)};
+% \node[ThemeGray] at (0,-1.55) {after \(n=3\), the sliding signal has passed the support of \(x[k]\)};
+
+\end{tikzpicture}
+
+After \(n=3\), the sliding signal has passed the support of \(x[k]\)
+
+\end{BlueCard}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer: final convolution output}
+
+\begin{center}
+\begin{BlueCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+% \CardTitle{Final convolution output}
+
+\vspace{0.06cm}
+
+\(
+y[n]=
+\begin{cases}
+0.5, & n=0,\\
+2.5, & n=1,\\
+2.5, & n=2,\\
+2, & n=3,\\
+0, & \text{otherwise.}
+\end{cases}
+\)
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=0.55cm,every node/.style={font=\scriptsize}]
+  \draw[-{Latex[length=1.5mm]},thick,black] (-2.6,0) -- (5.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.5mm]},thick,black] (0,-0.15) -- (0,3.05) node[above] {$y[n]$};
+
+  \foreach \n in {-2,-1,0,1,2,3,4}{
+    \fill[black] (\n,0) circle (0.8pt);
+    \draw[black] (\n,0.04) -- (\n,-0.04);
+    \node[below] at (\n,-0.06) {$\n$};
+  }
+
+  \foreach \n/\v/\lab in {0/0.5/{0.5},1/2.5/{2.5},2/2.5/{2.5},3/2/{2}}{
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (2.2pt);
+    \node[above] at (\n,\v+0.05) {\(\lab\)};
+  }
+
+  \node[left] at (0,1) {$1$};
+  \node[left] at (0,2) {$2$};
+\end{tikzpicture}
+
+% \vspace{0.06cm}
+
+% \begin{OrangeBox}[calloutshadedorange,halign=center,fontupper=\large]{}
+% Each value of \(y[n]\) came from one overlap position of the sliding signal \(h[n-k]\).
+% \end{OrangeBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+% =========================================================
+% Controls for the exponential-step convolution example
+% Change these two values if needed.
+% =========================================================
+\newcommand{\ExpConvAlpha}{0.82}   % plotted value of alpha
+\newcommand{\ExpConvMax}{10}       % number of right-side samples shown
+\newcommand{\ExpConvN}{8}          % example fixed n used in overlap pictures
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice (Example 2.3)}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Let \(0<\alpha<1\). Compute
+\[
+y[n]=x[n]*h[n],
+\qquad
+x[n]=\alpha^n u[n],
+\qquad
+h[n]=u[n].
+\]
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% x[n]
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Input \(x[n]=\alpha^n u[n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.35cm,y=1.25cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-5.2,0) -- (16.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-0.10) -- (0,1.25);
+
+  \node[ThemeGray,font=\large] at (-4.55,0.20) {$\cdots$};
+  \node[ThemeGray,font=\large] at (15.45,0.20) {$\cdots$};
+
+  % zero samples before 0
+  \foreach \n in {-4,-3,-2,-1}{
+    \fill[black] (\n,0) circle (1.0pt);
+  }
+
+  % alpha^n samples
+  \foreach \n in {0,...,\ExpConvMax}{
+    \pgfmathsetmacro{\v}{pow(\ExpConvAlpha,\n)}
+    \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+    \fill[ThemeGreen] (\n,\v) circle (1.7pt);
+    \fill[black] (\n,0) circle (0.65pt);
+  }
+
+  \foreach \n in {-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}{
+    \draw[black] (\n,0.025) -- (\n,-0.025);
+  }
+
+  \node[below] at (0,-0.04) {$0$};
+  \node[below] at (5,-0.04) {$5$};
+  \node[below] at (10,-0.04) {$10$};
+  \node[left] at (0,1) {$1$};
+
+  \node[ThemeGreen,above] at (6.5,0.48) {\(x[n]\)};
+\end{tikzpicture}
+
+% \vspace{0.04cm}
+
+% {\normalsize plotted with \(\alpha=\ExpConvAlpha\)}
+
+\end{GreenCard}
+\end{column}
+
+% h[n]
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Impulse response \(h[n]=u[n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.35cm,y=1.25cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-5.2,0) -- (16.2,0) node[right] {$n$};
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-0.10) -- (0,1.25);
+
+  \node[ThemeGray,font=\large] at (-4.55,0.20) {$\cdots$};
+  \node[ThemeGray,font=\large] at (15.45,1.08) {$\cdots$};
+
+  % zero samples before 0
+  \foreach \n in {-4,-3,-2,-1}{
+    \fill[black] (\n,0) circle (1.0pt);
+  }
+
+  % unit step samples
+  \foreach \n in {0,...,\ExpConvMax}{
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,1);
+    \fill[ThemeBlue] (\n,1) circle (1.7pt);
+    \fill[black] (\n,0) circle (0.65pt);
+  }
+
+  \foreach \n in {-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}{
+    \draw[black] (\n,0.025) -- (\n,-0.025);
+  }
+
+  \node[below] at (0,-0.04) {$0$};
+  \node[below] at (5,-0.04) {$5$};
+  \node[below] at (10,-0.04) {$10$};
+  \node[left] at (0,1) {$1$};
+
+  \node[ThemeBlue,above] at (8.5,1.04) {\(h[n]\)};
+
+\end{tikzpicture}
+
+% \vspace{0.04cm}
+
+% {\normalsize a unit step impulse response}
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{First understand how \(h[n-k]\) looks like}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Since \(h[n]=u[n]\), we have \(h[n-k]=u[n-k]\).  
+% So \(h[n-k]=1\) exactly when \(k\le n\).
+% \end{BlueBox}
+
+% \vspace{0.10cm}
+
+\begin{center}
+\begin{OrangeCard}[width=0.94\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Reflect \(h[k]\), then shift it by \(n\)}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.42cm,y=0.65cm,every node/.style={font=\scriptsize}]
+
+% ---------------- h[k]
+\begin{scope}[yshift=2.25cm]
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-6.0,0.55) {\(h[k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-5.5,0) -- (13.3,0) node[right] {$k$};
+
+  \node[ThemeGray,font=\large] at (-4.9,0.25) {$\cdots$};
+  \node[ThemeGray,font=\large] at (12.55,1.05) {$\cdots$};
+
+  \foreach \k in {-4,-3,-2,-1}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \foreach \k in {0,...,12}{
+    \draw[very thick,ThemeBlue] (\k,0) -- (\k,1);
+    \fill[ThemeBlue] (\k,1) circle (1.6pt);
+    \fill[black] (\k,0) circle (0.6pt);
+  }
+
+  \node[below] at (0,-0.05) {$0$};
+\end{scope}
+
+% ---------------- h[-k]
+\begin{scope}[yshift=0.25cm]
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-6.0,0.55) {\(h[-k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-12.5,0) -- (6.0,0) node[right] {$k$};
+
+  \node[ThemeGray,font=\large] at (-11.8,1.05) {$\cdots$};
+  \node[ThemeGray,font=\large] at (5.25,0.25) {$\cdots$};
+
+  \foreach \k in {-12,...,0}{
+    \draw[very thick,ThemeOrange] (\k,0) -- (\k,1);
+    \fill[ThemeOrange] (\k,1) circle (1.6pt);
+    \fill[black] (\k,0) circle (0.6pt);
+  }
+
+  \foreach \k in {1,2,3,4,5}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \node[below] at (0,-0.05) {$0$};
+\end{scope}
+
+% ---------------- h[n-k]
+\begin{scope}[yshift=-1.75cm]
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-6.0,0.55) {\(h[n-k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-7.0,0) -- (13.3,0) node[right] {$k$};
+
+  \node[ThemeGray,font=\large] at (-6.35,1.05) {$\cdots$};
+  \node[ThemeGray,font=\large] at (12.55,0.25) {$\cdots$};
+
+  % example n = ExpConvN
+  \foreach \k in {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8}{
+    \draw[very thick,ThemeGreen] (\k,0) -- (\k,1);
+    \fill[ThemeGreen] (\k,1) circle (1.6pt);
+    \fill[black] (\k,0) circle (0.6pt);
+  }
+
+  \foreach \k in {9,10,11,12}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \draw[densely dashed,ThemeGreen,very thick] (\ExpConvN,0) -- (\ExpConvN,1.25);
+  \node[below] at (\ExpConvN,-0.05) {$n$};
+  \node[ThemeGreen,above] at (\ExpConvN,1.27) {edge at \(k=n\)};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(n<0\), there is no overlap}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{No common nonzero \(k\)}
+
+\vspace{0.12cm}
+
+\begin{tikzpicture}[x=0.48cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\LastSample}{\ExpConvMax}
+
+% =========================================================
+% Top axis: x[k]
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-6.0,2.20) -- (16.0,2.20) node[right] {$k$};
+
+\node[anchor=east,ThemeGreen,font=\large\bfseries]
+  at (-6.25,2.78) {\(x[k]\)};
+
+\node[ThemeGray,font=\large] at (-5.35,2.40) {$\cdots$};
+\node[ThemeGray,font=\large] at (15.25,2.40) {$\cdots$};
+
+% zero samples before 0
+\foreach \k in {-4,-3,-2,-1}{
+  \fill[black] (\k,2.20) circle (0.80pt);
+}
+
+% x[k] = alpha^k u[k]
+\foreach \k in {0,...,\LastSample}{
+  \pgfmathsetmacro{\v}{pow(\ExpConvAlpha,\k)}
+  \draw[very thick,ThemeGreen] (\k,2.20) -- (\k,2.20+\v);
+  \fill[ThemeGreen] (\k,2.20+\v) circle (1.95pt);
+  \fill[black] (\k,2.20) circle (0.65pt);
+}
+
+\node[ThemeGreen,above] at (0,3.22) {\(1\)};
+
+% =========================================================
+% Bottom axis: h[n-k], example n = -2
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-6.0,-0.55) -- (16.0,-0.55) node[right] {$k$};
+
+\node[anchor=east,ThemeOrange,font=\large\bfseries]
+  at (-6.25,0.03) {\(h[n-k]\)};
+
+\node[ThemeGray,font=\large] at (-5.35,0.47) {$\cdots$};
+
+% h[n-k] nonzero for k <= n, illustrated with n=-2
+\foreach \k in {-6,-5,-4,-3,-2}{
+  \draw[very thick,ThemeOrange] (\k,-0.55) -- (\k,0.45);
+  \fill[ThemeOrange] (\k,0.45) circle (1.95pt);
+  \fill[black] (\k,-0.55) circle (0.65pt);
+}
+
+% zero samples after n
+\foreach \k in {-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}{
+  \fill[black] (\k,-0.55) circle (0.80pt);
+}
+
+% sparse tick labels
+\foreach \k in {-5,0,5,10,14}{
+  \draw[black] (\k,-0.48) -- (\k,-0.62);
+  \node[below] at (\k,-0.67) {$\k$};
+}
+
+% boundary and gap
+\draw[densely dashed,ThemeOrange,very thick] (-2,-0.55) -- (-2,0.70);
+\node[ThemeOrange,above] at (-2,0.75) {\(n<0\)};
+
+% \draw[{Latex[length=1.7mm]}-{Latex[length=1.7mm]},very thick,ThemeRed]
+%   (-1.75,0.95) -- (-0.20,0.95);
+% \node[ThemeRed,font=\bfseries] at (-0.98,1.18) {gap};
+
+% result
+\node[ThemeBlue,font=\Large\bfseries] at (11.2,0.60) {\(y[n]=0\)};
+
+\end{tikzpicture}
+
+% \vspace{0.08cm}
+
+% {\large
+% \[
+% \text{No overlap}\quad\Rightarrow\quad y[n]=0.
+% \]
+% }
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(n\ge 0\), the overlap is from \(k=0\) to \(k=n\)}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{Overlap region}
+
+% \vspace{0.12cm}
+
+\begin{tikzpicture}[x=0.48cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\LastSample}{\ExpConvMax}
+\pgfmathtruncatemacro{\FixedN}{\ExpConvN}
+
+% =========================================================
+% Top axis: x[k]
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-5.2,2.20) -- (16.0,2.20) node[right] {$k$};
+
+\node[anchor=east,ThemeGreen,font=\large\bfseries]
+  at (-5.45,2.78) {\(x[k]\)};
+
+\node[ThemeGray,font=\large] at (-4.55,2.40) {$\cdots$};
+\node[ThemeGray,font=\large] at (15.25,2.40) {$\cdots$};
+
+% zero samples before 0
+\foreach \k in {-4,-3,-2,-1}{
+  \fill[black] (\k,2.20) circle (0.80pt);
+}
+
+% x[k] = alpha^k u[k]
+\foreach \k in {0,...,\LastSample}{
+  \pgfmathsetmacro{\v}{pow(\ExpConvAlpha,\k)}
+  \draw[very thick,ThemeGreen] (\k,2.20) -- (\k,2.20+\v);
+  \fill[ThemeGreen] (\k,2.20+\v) circle (1.95pt);
+  \fill[black] (\k,2.20) circle (0.65pt);
+}
+
+\node[ThemeGreen,above] at (0,3.22) {\(1\)};
+
+% =========================================================
+% Bottom axis: h[n-k]
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-5.2,-0.55) -- (16.0,-0.55) node[right] {$k$};
+
+\node[anchor=east,ThemeOrange,font=\large\bfseries]
+  at (-5.45,0.03) {\(h[n-k]\)};
+
+\node[ThemeGray,font=\large] at (-4.55,0.47) {$\cdots$};
+
+% h[n-k] nonzero for k <= n
+\foreach \k in {-4,-3,-2,-1,0,1,2,3,4,5,6,7,8}{
+  \draw[very thick,ThemeOrange] (\k,-0.55) -- (\k,0.45);
+  \fill[ThemeOrange] (\k,0.45) circle (1.95pt);
+  \fill[black] (\k,-0.55) circle (0.65pt);
+}
+
+% zero after n
+\foreach \k in {9,10,11,12,13,14}{
+  \fill[black] (\k,-0.55) circle (0.80pt);
+}
+
+% sparse tick labels
+\foreach \k in {-4,0,5,8,10,14}{
+  \draw[black] (\k,-0.48) -- (\k,-0.62);
+  \node[below] at (\k,-0.67) {$\k$};
+}
+
+% overlap guide lines
+\foreach \k in {0,1,2,3,4,5,6,7,8}{
+  \draw[densely dashed,very thick,ThemeBlue] (\k,2.20) -- (\k,0.45);
+}
+
+% overlap bracket
+\draw[{Latex[length=1.8mm]}-{Latex[length=1.8mm]},very thick,ThemeBlue]
+  (0,0.95) -- (\FixedN,0.95);
+
+\node[ThemeBlue,font=\bfseries] at (4,1.22) {\(0\le k\le n\)};
+
+% edge at n
+\draw[densely dashed,ThemeOrange,very thick]
+  (\FixedN,-0.55) -- (\FixedN,0.72);
+
+\node[ThemeOrange,above] at (\FixedN,0.77) {\(k=n\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\(
+\text{Overlap}\quad\Rightarrow\quad x[k]h[n-k]=\alpha^k,\qquad 0\le k\le n.
+\)
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Therefore the product is just the overlapping part of \(x[k]\)}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% Inside the overlap, \(h[n-k]=1\).  
+% So \(x[k]h[n-k]=\alpha^k\) for \(0\le k\le n\), and \(0\) otherwise.
+% \end{OrangeBox}
+
+% \vspace{0.10cm}
+
+\begin{center}
+\begin{BlueCard}[width=0.90\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Product sequence for \(n\ge 0\)}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.46cm,y=1.20cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-3.2,0) -- (15.8,0) node[right] {$k$};
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (0,-0.10) -- (0,1.25);
+
+  \node[ThemeGray,font=\large] at (-2.55,0.18) {$\cdots$};
+  \node[ThemeGray,font=\large] at (15.10,0.18) {$\cdots$};
+
+  % zero before 0
+  \foreach \k in {-2,-1}{
+    \fill[black] (\k,0) circle (0.85pt);
+  }
+
+  % product alpha^k from 0 to n
+  \foreach \k in {0,1,2,3,4,5,6,7,8}{
+    \pgfmathsetmacro{\v}{pow(\ExpConvAlpha,\k)}
+    \draw[very thick,ThemeBlue] (\k,0) -- (\k,\v);
+    \fill[ThemeBlue] (\k,\v) circle (1.9pt);
+    \fill[black] (\k,0) circle (0.65pt);
+  }
+
+  % zero after n
+  \foreach \k in {9,10,11,12,13,14}{
+    \fill[black] (\k,0) circle (0.85pt);
+  }
+
+  \foreach \k in {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}{
+    \draw[black] (\k,0.025) -- (\k,-0.025);
+  }
+
+  \node[below] at (0,-0.04) {$0$};
+  \node[below] at (5,-0.04) {$5$};
+  \node[below] at (8,-0.04) {$n\)};
+
+  \draw[densely dashed,ThemeOrange,very thick] (\ExpConvN,0) -- (\ExpConvN,0.55);
+  \node[ThemeOrange,above] at (\ExpConvN,0.57) {\(n\)};
+
+  \node[ThemeBlue,font=\bfseries] at (5.0,0.80) {\(x[k]h[n-k]\)};
+
+\end{tikzpicture}
+
+\vspace{0.06cm}
+
+{\large
+\[
+x[k]h[n-k]
+=
+\begin{cases}
+\alpha^k, & 0\le k\le n,\\
+0, & \text{otherwise.}
+\end{cases}
+\]
+}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Now sum the product over all \(k\)}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  fontupper=\large,
+  halign=center
+]{}
+Only the overlap region contributes to the convolution sum.
+\end{GreenBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{OrangeCard}[width=0.88\textwidth,halign=center,top=12pt,bottom=12pt]
+\CardTitle{For \(n\ge 0\)}
+
+\vspace{0.08cm}
+
+\(
+\begin{aligned}
+y[n]
+&=
+\sum_{k=-\infty}^{\infty}x[k]h[n-k]\\[3pt]
+&=
+\sum_{k=0}^{n}\alpha^k\\[3pt]
+&=
+1+\alpha+\alpha^2+\cdots+\alpha^n.
+\end{aligned}
+\)
+
+% \vspace{0.08cm}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% This is a finite geometric sum.
+% \end{BlueBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The finite geometric sum gives the final answer}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+For \(0<\alpha<1\),
+\(
+1+\alpha+\alpha^2+\cdots+\alpha^n
+=
+\frac{1-\alpha^{n+1}}{1-\alpha}.
+\)
+\end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{GreenCard}[width=0.88\textwidth,halign=center,top=12pt,bottom=12pt]
+\CardTitle{Final convolution output}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+y[n]
+=
+\begin{cases}
+\displaystyle \frac{1-\alpha^{n+1}}{1-\alpha}, & n\ge 0,\\[8pt]
+0, & n<0.
+\end{cases}
+\]
+}
+
+% \vspace{0.06cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\Large
+% ]{}
+% \[
+% \displaystyle
+% y[n]=\frac{1-\alpha^{n+1}}{1-\alpha}\,u[n].
+% \]
+% \end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The output rises and approaches a limiting value}
+
+\begin{center}
+\begin{BlueCard}[width=0.92\textwidth,halign=center,top=10pt,bottom=10pt]
+\CardTitle{Shape of \(y[n]\)}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.38cm,y=0.65cm,every node/.style={font=\scriptsize}]
+
+  \pgfmathsetmacro{\Limit}{1/(1-\ExpConvAlpha)}
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-4.2,0) -- (22.0,0) node[right] {$n$};
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.15) -- (0,5.30) node[above] {$y[n]$};
+
+  \node[ThemeGray,font=\large] at (-3.55,0.25) {$\cdots$};
+  \node[ThemeGray,font=\large] at (21.20,\Limit) {$\cdots$};
+
+  % zero samples for n<0
+  \foreach \n in {-3,-2,-1}{
+    \fill[black] (\n,0) circle (0.9pt);
+  }
+
+  % y[n]=(1-alpha^{n+1})/(1-alpha)
+  \foreach \n in {0,...,20}{
+    \pgfmathsetmacro{\v}{(1-pow(\ExpConvAlpha,\n+1))/(1-\ExpConvAlpha)}
+    \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+    \fill[ThemeBlue] (\n,\v) circle (1.75pt);
+    \fill[black] (\n,0) circle (0.6pt);
+  }
+
+  % limiting line
+  \draw[densely dashed,very thick,ThemeOrange] (0,\Limit) -- (20.6,\Limit);
+  \node[ThemeOrange,left] at (0,\Limit) {\(\frac{1}{1-\alpha}\)};
+
+  \foreach \n in {-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20}{
+    \draw[black] (\n,0.025) -- (\n,-0.025);
+  }
+
+  \node[below] at (0,-0.05) {$0$};
+  \node[below] at (5,-0.05) {$5$};
+  \node[below] at (10,-0.05) {$10$};
+  \node[below] at (15,-0.05) {$15$};
+  \node[below] at (20,-0.05) {$20$};
+
+  \node[ThemeBlue,font=\bfseries] at (-5.5,3.75)
+    {\(\displaystyle y[n]=\frac{1-\alpha^{n+1}}{1-\alpha}u[n]\)};
+
+\end{tikzpicture}
+
+% \vspace{0.06cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% Here the plot uses \(\alpha=\ExpConvAlpha\). As \(n\) increases, more terms are included, and the sum approaches \(\dfrac{1}{1-\alpha}\).
+% \end{OrangeBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% =========================================================
+% Controls for Example 2.5
+% =========================================================
+\def\LeftConvNegMax{8}    % how far left to show
+\def\LeftConvPosMax{6}    % how far right to show
+\def\LeftConvPosN{5}      % example positive n
+\def\LeftConvNegN{-3}     % example negative n
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice (Example 2.5)}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Compute
+\[
+y[n]=x[n]*h[n],
+\qquad
+x[n]=2^n u[-n],
+\qquad
+h[n]=u[n].
+\]
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% x[n]
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Input \(x[n]=2^n u[-n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.43cm,y=1.25cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\L}{\LeftConvNegMax}
+\pgfmathtruncatemacro{\R}{\LeftConvPosMax}
+
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (-9.2,0) -- (9.0,0) node[right] {$n$};
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (0,-0.10) -- (0,1.28);
+
+\node[ThemeGray,font=\large] at (-8.65,0.20) {$\cdots$};
+\node[ThemeGray,font=\large] at (8.30,0.20) {$\cdots$};
+
+% nonzero for n <= 0
+\foreach \n in {-\L,...,0}{
+  \pgfmathsetmacro{\v}{pow(2,\n)}
+  \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+  \fill[ThemeGreen] (\n,\v) circle (1.8pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+% zero for n > 0
+\foreach \n in {1,...,\R}{
+  \fill[black] (\n,0) circle (0.80pt);
+}
+
+\foreach \n in {-8,-6,-4,-2,0,2,4,6,8}{
+  \draw[black] (\n,0.025) -- (\n,-0.025);
+}
+
+\node[below] at (-4,-0.04) {$-4$};
+\node[below] at (0,-0.04) {$0$};
+\node[below] at (4,-0.04) {$4$};
+
+\node[left] at (0,1) {$1$};
+\node[ThemeGreen,above] at (-3.0,0.40) {\(x[n]\)};
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+% h[n]
+\begin{column}{0.5\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Impulse response \(h[n]=u[n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.43cm,y=1.25cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\L}{\LeftConvNegMax}
+\pgfmathtruncatemacro{\R}{\LeftConvPosMax}
+
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (-9.2,0) -- (9.0,0) node[right] {$n$};
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (0,-0.10) -- (0,1.28);
+
+\node[ThemeGray,font=\large] at (-8.65,0.20) {$\cdots$};
+\node[ThemeGray,font=\large] at (8.30,1.08) {$\cdots$};
+
+% zero for n < 0
+\foreach \n in {-\L,...,-1}{
+  \fill[black] (\n,0) circle (0.80pt);
+}
+
+% nonzero for n >= 0
+\foreach \n in {0,...,\R}{
+  \draw[very thick,ThemeBlue] (\n,0) -- (\n,1);
+  \fill[ThemeBlue] (\n,1) circle (1.8pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+\foreach \n in {-8,-6,-4,-2,0,2,4,6,8}{
+  \draw[black] (\n,0.025) -- (\n,-0.025);
+}
+
+\node[below] at (-4,-0.04) {$-4$};
+\node[below] at (0,-0.04) {$0$};
+\node[below] at (4,-0.04) {$4$};
+
+\node[left] at (0,1) {$1$};
+\node[ThemeBlue,above] at (4.2,1.04) {\(h[n]\)};
+
+\end{tikzpicture}
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{First understand how \(h[n-k]\) looks}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.94\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Reflect \(h[k]\), then shift it by \(n\)}
+
+\vspace{0.05cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.70cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\L}{\LeftConvNegMax}
+\pgfmathtruncatemacro{\R}{\LeftConvPosMax}
+\pgfmathtruncatemacro{\Npos}{\LeftConvPosN}
+\pgfmathtruncatemacro{\NposPlus}{\Npos+1}
+
+% ---------------- h[k]
+\begin{scope}[yshift=2.30cm]
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-9.2,0.55) {\(h[k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-8.8,0) -- (9.0,0) node[right] {$k$};
+
+  \node[ThemeGray,font=\large] at (-8.2,0.22) {$\cdots$};
+  \node[ThemeGray,font=\large] at (8.3,1.05) {$\cdots$};
+
+  \foreach \k in {-\L,...,-1}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \foreach \k in {0,...,\R}{
+    \draw[very thick,ThemeBlue] (\k,0) -- (\k,1);
+    \fill[ThemeBlue] (\k,1) circle (1.65pt);
+    \fill[black] (\k,0) circle (0.60pt);
+  }
+
+  \node[below] at (0,-0.05) {$0$};
+\end{scope}
+
+% ---------------- h[-k]
+\begin{scope}[yshift=0.20cm]
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-9.2,0.55) {\(h[-k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-8.8,0) -- (9.0,0) node[right] {$k$};
+
+  \node[ThemeGray,font=\large] at (-8.2,1.05) {$\cdots$};
+  \node[ThemeGray,font=\large] at (8.3,0.22) {$\cdots$};
+
+  \foreach \k in {-\L,...,0}{
+    \draw[very thick,ThemeOrange] (\k,0) -- (\k,1);
+    \fill[ThemeOrange] (\k,1) circle (1.65pt);
+    \fill[black] (\k,0) circle (0.60pt);
+  }
+
+  \foreach \k in {1,...,\R}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \node[below] at (0,-0.05) {$0$};
+\end{scope}
+
+% ---------------- h[n-k]
+\begin{scope}[yshift=-1.90cm]
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-9.2,0.55) {\(h[n-k]\)};
+  \draw[-{Latex[length=1.3mm]},thick,black] (-8.8,0) -- (9.0,0) node[right] {$k$};
+
+  \node[ThemeGray,font=\large] at (-8.2,1.05) {$\cdots$};
+  \node[ThemeGray,font=\large] at (8.3,0.22) {$\cdots$};
+
+  \foreach \k in {-\L,...,\Npos}{
+    \draw[very thick,ThemeGreen] (\k,0) -- (\k,1);
+    \fill[ThemeGreen] (\k,1) circle (1.65pt);
+    \fill[black] (\k,0) circle (0.60pt);
+  }
+
+  \foreach \k in {\NposPlus,...,\R}{
+    \fill[black] (\k,0) circle (0.75pt);
+  }
+
+  \draw[densely dashed,ThemeGreen,very thick] (\Npos,0) -- (\Npos,1.25);
+  \node[below] at (\Npos,-0.05) {$n$};
+  \node[ThemeGreen,above] at (\Npos,1.27) {edge};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(n<0\), the overlap stops at \(k=n\)}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{Overlap for \(n<0\)}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.48cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\L}{\LeftConvNegMax}
+\pgfmathtruncatemacro{\R}{\LeftConvPosMax}
+\pgfmathtruncatemacro{\Nneg}{\LeftConvNegN}
+\pgfmathtruncatemacro{\NnegPlus}{\Nneg+1}
+
+% =========================================================
+% Top axis: x[k]
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-9.2,2.20) -- (9.0,2.20) node[right] {$k$};
+
+\node[anchor=east,ThemeGreen,font=\large\bfseries]
+  at (-9.45,2.80) {\(x[k]\)};
+
+\node[ThemeGray,font=\large] at (-8.65,2.42) {$\cdots$};
+\node[ThemeGray,font=\large] at (8.30,2.42) {$\cdots$};
+
+% x[k] nonzero for k <= 0
+\foreach \k in {-\L,...,0}{
+  \pgfmathsetmacro{\v}{pow(2,\k)}
+  \draw[very thick,ThemeGreen] (\k,2.20) -- (\k,2.20+\v);
+  \fill[ThemeGreen] (\k,2.20+\v) circle (1.95pt);
+  \fill[black] (\k,2.20) circle (0.65pt);
+}
+
+% x[k] zero for k > 0
+\foreach \k in {1,...,\R}{
+  \fill[black] (\k,2.20) circle (0.80pt);
+}
+
+\node[ThemeGreen,above] at (0,3.22) {\(1\)};
+
+% =========================================================
+% Bottom axis: h[n-k], n < 0
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-9.2,-0.55) -- (9.0,-0.55) node[right] {$k$};
+
+\node[anchor=east,ThemeOrange,font=\large\bfseries]
+  at (-9.45,0.05) {\(h[n-k]\)};
+
+\node[ThemeGray,font=\large] at (-8.65,0.50) {$\cdots$};
+
+% h[n-k] nonzero for k <= n
+\foreach \k in {-\L,...,\Nneg}{
+  \draw[very thick,ThemeOrange] (\k,-0.55) -- (\k,0.45);
+  \fill[ThemeOrange] (\k,0.45) circle (1.95pt);
+  \fill[black] (\k,-0.55) circle (0.65pt);
+}
+
+% h[n-k] zero after n
+\foreach \k in {\NnegPlus,...,\R}{
+  \fill[black] (\k,-0.55) circle (0.80pt);
+}
+
+% sparse ticks
+\foreach \k in {-8,-4,0,4,8}{
+  \draw[black] (\k,-0.48) -- (\k,-0.62);
+  \node[below] at (\k,-0.67) {$\k$};
+}
+
+% overlap guides: k <= n
+\foreach \k in {-\L,...,\Nneg}{
+  \draw[densely dashed,very thick,ThemeBlue] (\k,2.20) -- (\k,0.45);
+}
+
+% bracket for overlap
+\draw[{Latex[length=1.8mm]}-{Latex[length=1.8mm]},very thick,ThemeBlue]
+  ({-\L-2},0.95) -- (\Nneg,0.95);
+
+\node[ThemeBlue,font=\bfseries] at (-11,1.32) {overlap: \(k\le n\)};
+
+% edge at negative n
+\draw[densely dashed,ThemeOrange,very thick]
+  (\Nneg,-0.55) -- (\Nneg,0.72);
+
+\node[ThemeOrange,above] at ({\Nneg+1},0.77) {\(k=n\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\(
+\text{For }n<0,\qquad
+x[k]h[n-k]=2^k\quad\text{for }k\le n.
+\)
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(n\ge 0\), all nonzero samples of \(x[k]\) overlap}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{Overlap for \(n\ge 0\)}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.48cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\L}{\LeftConvNegMax}
+\pgfmathtruncatemacro{\R}{\LeftConvPosMax}
+\pgfmathtruncatemacro{\Npos}{\LeftConvPosN}
+\pgfmathtruncatemacro{\NposPlus}{\Npos+1}
+
+% =========================================================
+% Top axis: x[k]
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-9.2,2.20) -- (9.0,2.20) node[right] {$k$};
+
+\node[anchor=east,ThemeGreen,font=\large\bfseries]
+  at (-9.45,2.80) {\(x[k]\)};
+
+\node[ThemeGray,font=\large] at (-8.65,2.42) {$\cdots$};
+\node[ThemeGray,font=\large] at (8.30,2.42) {$\cdots$};
+
+% x[k] nonzero for k <= 0
+\foreach \k in {-\L,...,0}{
+  \pgfmathsetmacro{\v}{pow(2,\k)}
+  \draw[very thick,ThemeGreen] (\k,2.20) -- (\k,2.20+\v);
+  \fill[ThemeGreen] (\k,2.20+\v) circle (1.95pt);
+  \fill[black] (\k,2.20) circle (0.65pt);
+}
+
+% x[k] zero for k > 0
+\foreach \k in {1,...,\R}{
+  \fill[black] (\k,2.20) circle (0.80pt);
+}
+
+\node[ThemeGreen,above] at (0,3.22) {\(1\)};
+
+% =========================================================
+% Bottom axis: h[n-k], n >= 0
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-9.2,-0.55) -- (9.0,-0.55) node[right] {$k$};
+
+\node[anchor=east,ThemeOrange,font=\large\bfseries]
+  at (-9.45,0.05) {\(h[n-k]\)};
+
+\node[ThemeGray,font=\large] at (-8.65,0.50) {$\cdots$};
+
+% h[n-k] nonzero for k <= n
+\foreach \k in {-\L,...,\Npos}{
+  \draw[very thick,ThemeOrange] (\k,-0.55) -- (\k,0.45);
+  \fill[ThemeOrange] (\k,0.45) circle (1.95pt);
+  \fill[black] (\k,-0.55) circle (0.65pt);
+}
+
+% h[n-k] zero after n
+\foreach \k in {\NposPlus,...,\R}{
+  \fill[black] (\k,-0.55) circle (0.80pt);
+}
+
+% sparse ticks
+\foreach \k in {-8,-4,0,4,8}{
+  \draw[black] (\k,-0.48) -- (\k,-0.62);
+  \node[below] at (\k,-0.67) {$\k$};
+}
+
+% overlap guides: all k <= 0
+\foreach \k in {-\L,...,0}{
+  \draw[densely dashed,very thick,ThemeBlue] (\k,2.20) -- (\k,0.45);
+}
+
+% bracket for overlap
+\draw[{Latex[length=1.8mm]}-{Latex[length=1.8mm]},very thick,ThemeBlue]
+  ({-\L-2},0.95) -- (0,0.95);
+
+\node[ThemeBlue,font=\bfseries] at (-11,1.32) {overlap: \(k\le 0\)};
+
+% edge at positive n
+\draw[densely dashed,ThemeOrange,very thick]
+  (\Npos,-0.55) -- (\Npos,0.72);
+
+\node[ThemeOrange,above] at (\Npos,0.77) {\(k=n\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\(
+\text{For }n\ge 0,\qquad
+x[k]h[n-k]=2^k\quad\text{for }k\le 0.
+\)
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(n<0\), the sum stops at \(k=n\)}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Case 1: \(n<0\)}
+
+\vspace{0.08cm}
+
+\[
+\begin{aligned}
+y[n]
+&=
+\sum_{k=-\infty}^{\infty}x[k]h[n-k]\\[3pt]
+&=
+\sum_{k=-\infty}^{n}2^k.
+\end{aligned}
+\]
+
+\vspace{0.10cm}
+
+\[
+\sum_{k=-\infty}^{n}2^k
+=
+2^n+2^{n-1}+2^{n-2}+\cdots
+=
+2^{n+1}.
+\]
+
+% \vspace{0.08cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% So for \(n<0\), \(\;y[n]=2^{n+1}\).
+% \end{OrangeBox}
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(n\ge 0\), the sum includes all left-sided samples}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Case 1: \(n\ge 0\)}
+
+\vspace{0.08cm}
+
+\[
+\begin{aligned}
+y[n]
+&=
+\sum_{k=-\infty}^{\infty}x[k]h[n-k]\\[3pt]
+&=
+\sum_{k=-\infty}^{0}2^k.
+\end{aligned}
+\]
+
+\vspace{0.10cm}
+
+\[
+\sum_{k=-\infty}^{0}2^k
+=
+\cdots+\frac{1}{8}+\frac{1}{4}+\frac{1}{2}+1
+=
+2.
+\]
+
+% \vspace{0.08cm}
+
+% \begin{BlueBox}[
+%   calloutshadedblue,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% So for \(n\ge 0\), \(\;y[n]=2\).
+% \end{BlueBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The output is left-sided exponential, then a constant}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Final answer}
+
+\vspace{0.06cm}
+
+\[
+y[n]=
+\begin{cases}
+2^{n+1}, & n<0,\\[4pt]
+2, & n\ge 0.
+\end{cases}
+\]
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.48cm,y=0.58cm,every node/.style={font=\scriptsize}]
+
+\pgfmathtruncatemacro{\L}{\LeftConvNegMax}
+\pgfmathtruncatemacro{\R}{\LeftConvPosMax}
+
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-9.2,0) -- (9.2,0) node[right] {$n$};
+
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (0,-0.15) -- (0,2.65) node[above] {$y[n]$};
+
+\node[ThemeGray,font=\large] at (-8.65,0.25) {$\cdots$};
+\node[ThemeGray,font=\large] at (8.50,2.08) {$\cdots$};
+
+% n < 0: 2^{n+1}
+\foreach \n in {-\L,...,-1}{
+  \pgfmathsetmacro{\v}{pow(2,\n+1)}
+  \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+  \fill[ThemeGreen] (\n,\v) circle (1.9pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+% n >= 0: constant 2
+\foreach \n in {0,...,\R}{
+  \draw[very thick,ThemeGreen] (\n,0) -- (\n,2);
+  \fill[ThemeGreen] (\n,2) circle (1.9pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+% limiting/constant line
+\draw[densely dashed,very thick,ThemeOrange] (0,2) -- (8.3,2);
+\node[ThemeOrange,left] at (0,2) {$2$};
+
+% ticks
+\foreach \n in {-8,-4,0,4,8}{
+  \draw[black] (\n,0.035) -- (\n,-0.035);
+  \node[below] at (\n,-0.06) {$\n$};
+}
+
+\node[left] at (0,1) {$1$};
+\node[ThemeGreen,font=\bfseries] at (4.7,2.35) {\(y[n]\)};
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% =========================================================
+% Controls for continuous-time convolution example
+% =========================================================
+\newcommand{\CTConvA}{0.70}       % plotted value of a
+\newcommand{\CTConvTpos}{3.00}    % example positive t
+\newcommand{\CTConvTneg}{-1.25}   % example negative t
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice (Example 2.6)}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Let \(a>0\). Compute
+\[
+y(t)=x(t)*h(t),
+\qquad
+x(t)=e^{-at}u(t),
+\qquad
+h(t)=u(t).
+\]
+\end{OrangeBox}
+
+\vspace{0.02cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% x(t)
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Input \(x(t)=e^{-at}u(t)\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=1.25cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.4,0) -- (5.1,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.10) -- (0,1.25);
+
+  % zero for t<0
+  \draw[very thick,ThemeGray] (-2.0,0) -- (0,0);
+
+  % exponential for t>=0
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=0:4.6,samples=120] (\x,{exp(-\CTConvA*\x)});
+
+  \draw[very thick,ThemeGreen] (0,0) -- (0,1);
+
+  \node[ThemeGray,font=\large] at (-2.05,0.18) {$\cdots$};
+  \node[ThemeGray,font=\large] at (4.65,0.18) {$\cdots$};
+
+  \node[below] at (0,-0.04) {$0$};
+  \node[left] at (0,1) {$1$};
+
+  \node[ThemeGreen,above] at (1.75,0.45) {\(e^{-at}u(t)\)};
+
+\end{tikzpicture}
+
+% \vspace{0.04cm}
+
+% {\normalsize plotted with \(a=\CTConvA\)}
+
+\end{GreenCard}
+\end{column}
+
+% h(t)
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Impulse response \(h(t)=u(t)\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=1.25cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.4,0) -- (5.1,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.10) -- (0,1.25);
+
+  % unit step
+  \draw[very thick,ThemeGray] (-2.0,0) -- (0,0);
+  \draw[very thick,ThemeBlue] (0,0) -- (0,1);
+  \draw[very thick,ThemeBlue] (0,1) -- (4.6,1);
+
+  \node[ThemeGray,font=\large] at (-2.05,0.18) {$\cdots$};
+  \node[ThemeGray,font=\large] at (4.65,1.08) {$\cdots$};
+
+  \node[below] at (0,-0.04) {$0$};
+  \node[left] at (0,1) {$1$};
+
+  \node[ThemeBlue,above] at (2.55,1.04) {\(u(t)\)};
+
+\end{tikzpicture}
+
+% \vspace{0.04cm}
+
+% {\normalsize a unit step}
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{First understand how \(h(t-\tau)\) moves}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.94\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Reflect \(h(\tau)\), then shift by \(t\)}
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.83cm,y=0.74cm,every node/.style={font=\scriptsize}]
+
+% =========================================================
+% h(tau)
+% =========================================================
+\begin{scope}[yshift=2.35cm]
+  \node[anchor=east,ThemeBlue,font=\large\bfseries] at (-3.0,0.55) {\(h(\tau)\)};
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-2.7,0) -- (5.1,0) node[right] {$\tau$};
+
+  \draw[very thick,ThemeGray] (-2.3,0) -- (0,0);
+  \draw[very thick,ThemeBlue] (0,0) -- (0,1);
+  \draw[very thick,ThemeBlue] (0,1) -- (4.6,1);
+
+  \node[ThemeGray,font=\large] at (-2.25,0.20) {$\cdots$};
+  \node[ThemeGray,font=\large] at (4.60,1.10) {$\cdots$};
+
+  \node[below] at (0,-0.05) {$0$};
+\end{scope}
+
+% =========================================================
+% h(-tau)
+% =========================================================
+\begin{scope}[yshift=0.30cm]
+  \node[anchor=east,ThemeOrange,font=\large\bfseries] at (-3.0,0.55) {\(h(-\tau)\)};
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-5.1,0) -- (2.7,0) node[right] {$\tau$};
+
+  \draw[very thick,ThemeOrange] (-4.6,1) -- (0,1);
+  \draw[very thick,ThemeOrange] (0,1) -- (0,0);
+  \draw[very thick,ThemeGray] (0,0) -- (2.3,0);
+
+  \node[ThemeGray,font=\large] at (-4.60,1.10) {$\cdots$};
+  \node[ThemeGray,font=\large] at (2.25,0.20) {$\cdots$};
+
+  \node[below] at (0,-0.05) {$0$};
+\end{scope}
+
+% =========================================================
+% h(t-tau)
+% =========================================================
+\begin{scope}[yshift=-1.75cm]
+  \node[anchor=east,ThemeGreen,font=\large\bfseries] at (-3.0,0.55) {\(h(t-\tau)\)};
+
+  \draw[-{Latex[length=1.4mm]},thick,black]
+    (-3.0,0) -- (5.3,0) node[right] {$\tau$};
+
+  \draw[very thick,ThemeGreen] (-2.6,1) -- (\CTConvTpos,1);
+  \draw[very thick,ThemeGreen] (\CTConvTpos,1) -- (\CTConvTpos,0);
+  \draw[very thick,ThemeGray] (\CTConvTpos,0) -- (4.8,0);
+
+  \node[ThemeGray,font=\large] at (-2.55,1.10) {$\cdots$};
+  \node[ThemeGray,font=\large] at (4.75,0.20) {$\cdots$};
+
+  \draw[densely dashed,ThemeGreen,very thick]
+    (\CTConvTpos,0) -- (\CTConvTpos,1.25);
+
+  \node[below] at (0,-0.05) {$0$};
+  \node[below] at (\CTConvTpos,-0.05) {$t$};
+  \node[ThemeGreen,above] at (\CTConvTpos,1.27) {edge};
+
+\end{scope}
+
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(t<0\), there is no overlap}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{No common nonzero \(\tau\)}
+
+\vspace{0.12cm}
+
+\begin{tikzpicture}[x=0.86cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+% =========================================================
+% Top axis: x(tau)
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-2.8,2.20) -- (5.2,2.20) node[right] {$\tau$};
+
+\node[anchor=east,ThemeGreen,font=\large\bfseries]
+  at (-3.00,2.78) {\(x(\tau)\)};
+
+\node[ThemeGray,font=\large] at (-2.45,2.38) {$\cdots$};
+\node[ThemeGray,font=\large] at (4.75,2.38) {$\cdots$};
+
+\draw[very thick,ThemeGray] (-2.3,2.20) -- (0,2.20);
+\draw[very thick,ThemeGreen] (0,2.20) -- (0,3.20);
+\draw[very thick,ThemeGreen,smooth]
+  plot[domain=0:4.6,samples=120] (\x,{2.20+exp(-\CTConvA*\x)});
+
+\node[below] at (0,2.15) {$0$};
+\node[ThemeGreen,above] at (0,3.22) {\(1\)};
+
+% =========================================================
+% Bottom axis: h(t-tau), t<0
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-2.8,-0.55) -- (5.2,-0.55) node[right] {$\tau$};
+
+\node[anchor=east,ThemeOrange,font=\large\bfseries]
+  at (-3.00,0.03) {\(h(t-\tau)\)};
+
+\node[ThemeGray,font=\large] at (-2.45,0.50) {$\cdots$};
+
+\draw[very thick,ThemeOrange] (-2.3,0.45) -- (\CTConvTneg,0.45);
+\draw[very thick,ThemeOrange] (\CTConvTneg,0.45) -- (\CTConvTneg,-0.55);
+\draw[very thick,ThemeGray] (\CTConvTneg,-0.55) -- (4.7,-0.55);
+
+\draw[densely dashed,ThemeOrange,very thick]
+  (\CTConvTneg,-0.55) -- (\CTConvTneg,0.75);
+
+\node[below] at (\CTConvTneg,-0.60) {$t<0$};
+\node[below] at (0,-0.60) {$0$};
+
+% % gap
+% \draw[{Latex[length=1.7mm]}-{Latex[length=1.7mm]},very thick,ThemeRed]
+%   ({\CTConvTneg+0.20},0.95) -- (-0.20,0.95);
+
+% \node[ThemeRed,font=\bfseries] at ({(\CTConvTneg-0.20)/2},1.20) {gap};
+
+% result
+\node[ThemeBlue,font=\Large\bfseries] at (3.45,0.60) {\(y(t)=0\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\(
+\text{No overlap}\quad\Rightarrow\quad y(t)=0.
+\)
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For \(t>0\), the overlap is \(0\le \tau\le t\)}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.95\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{Overlap region}
+
+% \vspace{0.12cm}
+
+\begin{tikzpicture}[x=0.86cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+% =========================================================
+% Top axis: x(tau)
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-2.4,2.20) -- (5.4,2.20) node[right] {$\tau$};
+
+\node[anchor=east,ThemeGreen,font=\large\bfseries]
+  at (-2.65,2.78) {\(x(\tau)\)};
+
+\node[ThemeGray,font=\large] at (-2.05,2.38) {$\cdots$};
+\node[ThemeGray,font=\large] at (4.95,2.38) {$\cdots$};
+
+% zero part of x(tau), then jump, then decay
+\draw[very thick,ThemeGray] (-2.0,2.20) -- (0,2.20);
+\draw[very thick,ThemeGreen] (0,2.20) -- (0,3.20);
+\draw[very thick,ThemeGreen,smooth]
+  plot[domain=0:4.8,samples=120] (\x,{2.20+exp(-\CTConvA*\x)});
+
+\node[below] at (0,2.15) {$0$};
+\node[ThemeGreen,above] at (0,3.22) {\(1\)};
+
+% =========================================================
+% Bottom axis: h(t-tau), t>0
+% =========================================================
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-2.4,-0.55) -- (5.4,-0.55) node[right] {$\tau$};
+
+\node[anchor=east,ThemeOrange,font=\large\bfseries]
+  at (-2.65,0.03) {\(h(t-\tau)\)};
+
+\node[ThemeGray,font=\large] at (-2.05,0.50) {$\cdots$};
+
+% h(t-tau): equal to 1 for tau <= t, zero after t
+\draw[very thick,ThemeOrange] (-2.0,0.45) -- (\CTConvTpos,0.45);
+\draw[very thick,ThemeOrange] (\CTConvTpos,0.45) -- (\CTConvTpos,-0.55);
+\draw[very thick,ThemeGray] (\CTConvTpos,-0.55) -- (4.9,-0.55);
+
+\node[below] at (0,-0.60) {$0$};
+\node[below] at (\CTConvTpos,-0.60) {$t$};
+
+% vertical guides showing overlap interval
+\draw[densely dashed,very thick,ThemeBlue]
+  (0,2.20) -- (0,0.45);
+
+\draw[densely dashed,very thick,ThemeBlue]
+  (\CTConvTpos,2.20) -- (\CTConvTpos,0.45);
+
+% overlap bracket
+\draw[{Latex[length=1.8mm]}-{Latex[length=1.8mm]},very thick,ThemeBlue]
+  (0,0.95) -- (\CTConvTpos,0.95);
+
+\node[ThemeBlue,font=\bfseries] at ({0.5*\CTConvTpos},1.22)
+  {\(0\le \tau\le t\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\(
+\text{Overlap}\quad\Rightarrow\quad
+x(\tau)h(t-\tau)=e^{-a\tau},
+\qquad 0\le \tau\le t.
+\) 
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Now integrate only over the overlap}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{For \(t>0\)}
+
+% \vspace{0.08cm}
+
+\[
+\begin{aligned}
+\text{For } t>0, \; y(t)
+&=
+\int_{-\infty}^{\infty}x(\tau)h(t-\tau)\,d\tau\\[3pt]
+&=
+\int_{0}^{t} e^{-a\tau}\,d\tau\\[3pt]
+&=
+\left[-\frac{1}{a}e^{-a\tau}\right]_{0}^{t}\\[3pt]
+&=
+\frac{1}{a}\left(1-e^{-at}\right).
+\end{aligned}
+\]
+
+\vspace{0.08cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\large
+]{}
+For \(t<0\), there is no overlap, so \(y(t)=0\).
+\end{BlueBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The output gradually rises to \(1/a\)}
+
+\begin{center}
+\begin{GreenCard}[
+  width=\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+% \CardTitle{Final answer}
+
+% \vspace{0.06cm}
+
+\[
+y(t)
+=
+\frac{1}{a}\left(1-e^{-at}\right)u(t).
+\]
+
+\vspace{0.06cm}
+
+\begin{tikzpicture}[x=0.90cm,y=1.15cm,every node/.style={font=\scriptsize}]
+
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-2.3,0) -- (6.0,0) node[right] {$t$};
+
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (0,-0.12) -- (0,1.75) node[above] {$y(t)$};
+
+% visible zero part for t < 0
+\draw[very thick,ThemeGreen] (-2.0,0) -- (0,0);
+
+% output for t >= 0
+\draw[very thick,ThemeGreen,smooth]
+  plot[domain=0:5.4,samples=140] (\x,{1.35*(1-exp(-\CTConvA*\x))});
+
+% limiting value
+\draw[densely dashed,very thick,ThemeOrange]
+  (0,1.35) -- (5.5,1.35);
+
+\node[ThemeOrange,left] at (0,1.35) {\(\frac{1}{a}\)};
+\node[below] at (0,-0.05) {$0$};
+
+\node[ThemeGray,font=\large] at (-1.85,0.18) {$\cdots$};
+\node[ThemeGray,font=\large] at (5.55,1.35) {$\cdots$};
+
+\node[ThemeGreen,font=\bfseries] at (6.20,0.72)
+  {\(\displaystyle y(t)=\frac{1}{a}(1-e^{-at})u(t)\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+As \(t\) increases, the overlap grows, so the integral rises toward \(\dfrac{1}{a}\).
+\end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Property: Convolution distributes over addition}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+If one signal is a sum of two simpler signals, \\ we may convolve the two parts separately.
+\end{BlueBox}
+
+\vspace{0.14cm}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{Distributive property}
+
+% \vspace{0.06cm}
+
+{\Large
+\[
+x[n]*\big(h_1[n]+h_2[n]\big)
+=
+x[n]*h_1[n]+x[n]*h_2[n].
+\]
+}
+
+\vspace{0.08cm}
+
+{\Large
+\[
+\big(x_1[n]+x_2[n]\big)*h[n]
+=
+x_1[n]*h[n]+x_2[n]*h[n].
+\]
+}
+
+\end{GreenCard}
+\end{center}
+
+% \vspace{0.12cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   fontupper=\large,
+%   halign=center
+% ]{}
+% This is useful when one signal looks complicated, but can be split into easier pieces.
+% \end{OrangeBox}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice (Example 2.10)}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+Compute
+\[
+y[n]=x[n]*h[n],
+\qquad
+x[n]=\left(\frac12\right)^n u[n]+2^n u[-n],
+\qquad
+h[n]=u[n].
+\]
+\end{OrangeBox}
+
+\vspace{0.10cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% x[n]
+\begin{column}{0.58\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Input \(x[n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.43cm,y=0.58cm,every node/.style={font=\scriptsize}]
+
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (-7.2,0) -- (8.0,0) node[right] {$n$};
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (0,-0.15) -- (0,2.65);
+
+\node[ThemeGray,font=\large] at (-6.75,0.25) {$\cdots$};
+\node[ThemeGray,font=\large] at (7.35,0.25) {$\cdots$};
+
+% left part: 2^n u[-n]
+\foreach \n in {-6,-5,-4,-3,-2,-1}{
+  \pgfmathsetmacro{\v}{pow(2,\n)}
+  \draw[very thick,ThemeOrange] (\n,0) -- (\n,\v);
+  \fill[ThemeOrange] (\n,\v) circle (1.8pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+% n=0 has both contributions, so x[0]=2
+\draw[very thick,ThemeGreen] (0,0) -- (0,2);
+\fill[ThemeGreen] (0,2) circle (1.9pt);
+\fill[black] (0,0) circle (0.65pt);
+
+% right part: (1/2)^n u[n]
+\foreach \n in {1,2,3,4,5,6,7}{
+  \pgfmathsetmacro{\v}{pow(0.5,\n)}
+  \draw[very thick,ThemeBlue] (\n,0) -- (\n,\v);
+  \fill[ThemeBlue] (\n,\v) circle (1.8pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+\foreach \n in {-6,-3,0,3,6}{
+  \draw[black] (\n,0.04) -- (\n,-0.04);
+  \node[below] at (\n,-0.08) {$\n$};
+}
+
+\node[left] at (0,1) {$1$};
+\node[left] at (0,2) {$2$};
+
+\node[ThemeOrange,font=\bfseries] at (-3.8,0.72) {\(2^n u[-n]\)};
+\node[ThemeBlue,font=\bfseries] at (4.2,0.72) {\(\left(\frac12\right)^n u[n]\)};
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+% h[n]
+\begin{column}{0.38\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{\(h[n]=u[n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.45cm,y=0.70cm,every node/.style={font=\scriptsize}]
+
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (-4.2,0) -- (6.5,0) node[right] {$n$};
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (0,-0.12) -- (0,1.45);
+
+\node[ThemeGray,font=\large] at (-3.8,0.20) {$\cdots$};
+\node[ThemeGray,font=\large] at (6.0,1.08) {$\cdots$};
+
+\foreach \n in {-3,-2,-1}{
+  \fill[black] (\n,0) circle (0.75pt);
+}
+
+\foreach \n in {0,1,2,3,4,5}{
+  \draw[very thick,ThemeBlue] (\n,0) -- (\n,1);
+  \fill[ThemeBlue] (\n,1) circle (1.7pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+\node[below] at (0,-0.06) {$0$};
+\node[left] at (0,1) {$1$};
+
+\end{tikzpicture}
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Oops, different input expressions on the left and right side!}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.94\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+% \CardTitle{The issue}
+
+% \vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.52cm,y=0.66cm,every node/.style={font=\scriptsize}]
+
+% axis
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (-7.0,0) -- (8.0,0) node[right] {$k$};
+\draw[-{Latex[length=1.4mm]},thick,black]
+  (0,-0.12) -- (0,2.45);
+
+\node[ThemeGray,font=\large] at (-6.5,0.25) {$\cdots$};
+\node[ThemeGray,font=\large] at (7.35,0.25) {$\cdots$};
+
+% left part x[k]
+\foreach \k in {-6,-5,-4,-3,-2,-1}{
+  \pgfmathsetmacro{\v}{pow(2,\k)}
+  \draw[very thick,ThemeOrange] (\k,0) -- (\k,\v);
+  \fill[ThemeOrange] (\k,\v) circle (1.7pt);
+  \fill[black] (\k,0) circle (0.65pt);
+}
+
+% at zero
+\draw[very thick,ThemeGreen] (0,0) -- (0,2);
+\fill[ThemeGreen] (0,2) circle (1.8pt);
+\fill[black] (0,0) circle (0.65pt);
+
+% right part x[k]
+\foreach \k in {1,2,3,4,5,6,7}{
+  \pgfmathsetmacro{\v}{pow(0.5,\k)}
+  \draw[very thick,ThemeBlue] (\k,0) -- (\k,\v);
+  \fill[ThemeBlue] (\k,\v) circle (1.7pt);
+  \fill[black] (\k,0) circle (0.65pt);
+}
+
+% split line
+\draw[densely dashed,very thick,ThemeRed] (0,0) -- (0,2.25);
+\node[ThemeRed,above] at (0,2.28) {formula changes};
+
+\node[ThemeOrange,font=\bfseries] at (-3.6,0.70) {\(2^k\)};
+\node[ThemeBlue,font=\bfseries] at (3.9,0.70) {\(\left(\frac12\right)^k\)};
+
+\node[below] at (0,-0.08) {$0$};
+
+\end{tikzpicture}
+
+\vspace{0.10cm}
+
+\(
+x[k]=
+\underbrace{2^k u[-k]}_{\text{left-sided part}}
++
+\underbrace{\left(\frac12\right)^k u[k]}_{\text{right-sided part}}.
+\)
+
+\vspace{0.04cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\large
+]{}
+So, we split it first.
+\end{BlueBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Split the problem into two easier ones!}
+
+\begin{center}
+\begin{GreenCard}[
+  width=\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Split \(x[n]\), then convolve separately}
+
+\vspace{0.08cm}
+
+\[
+x[n]=x_1[n]+x_2[n],
+\qquad
+x_1[n]=\left(\frac12\right)^n u[n],
+\qquad
+x_2[n]=2^n u[-n].
+\]
+
+\vspace{0.12cm}
+
+\(
+\begin{aligned}
+y[n]
+&=x[n]*h[n]\\[3pt]
+% &=\big(x_1[n]+x_2[n]\big)*h[n]\\[3pt]
+&=x_1[n]*h[n]+x_2[n]*h[n]\\[3pt]
+&=y_1[n]+y_2[n].
+\end{aligned}
+\)
+
+\vspace{0.08cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+Each part is one we already know how to do.
+\end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The two smaller convolutions have simple answers}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+
+
+
+
+
+% y2
+\begin{column}{0.49\textwidth}
+\begin{OrangeCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Left-sided part}
+
+\vspace{0.04cm}
+
+\[
+x_2[n]=2^n u[-n],
+\qquad
+h[n]=u[n].
+\]
+
+\vspace{0.06cm}
+
+\[
+y_2[n]=x_2[n]*h[n].
+\]
+
+\vspace{0.06cm}
+
+\[
+y_2[n]=
+\begin{cases}
+2^{n+1}, & n<0,\\[3pt]
+2, & n\ge 0.
+\end{cases}
+\]
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% This is the accumulated sum of a left-sided exponential.
+% }
+
+\end{OrangeCard}
+\end{column}
+
+
+
+
+
+
+% y1
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Right-sided part}
+
+\vspace{0.04cm}
+
+\[
+x_1[n]=\left(\frac12\right)^n u[n],
+\qquad
+h[n]=u[n].
+\]
+
+\vspace{0.06cm}
+
+\[
+y_1[n]=x_1[n]*h[n].
+\]
+
+\vspace{0.06cm}
+
+\[
+y_1[n]
+=
+\left(2-2^{-n}\right)u[n].
+\]
+
+% \vspace{0.04cm}
+
+% {\normalsize
+% This is the accumulated sum of a decaying right-sided exponential.
+% }
+
+\end{BlueCard}
+\end{column}
+
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Now add the two outputs}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.90\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Final expression}
+
+\vspace{0.06cm}
+
+\[
+y[n]=y_1[n]+y_2[n].
+\]
+
+\vspace{0.08cm}
+
+% \[
+% y[n]
+% =
+% \begin{cases}
+% 2^{n+1}, & n<0,\\[5pt]
+% \left(2-2^{-n}\right)+2, & n\ge 0.
+% \end{cases}
+% \]
+
+% \vspace{0.08cm}
+
+\[
+\boxed{
+y[n]
+=
+\begin{cases}
+2^{n+1}, & n<0,\\[5pt]
+4-2^{-n}, & n\ge 0.
+\end{cases}}
+\]
+
+\vspace{0.06cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+The left side rises toward \(1\), then the right side rises toward \(4\).
+\end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{The output approaches \(4\) on the right}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Sketch of \(y[n]\)}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.55cm,y=0.55cm,every node/.style={font=\scriptsize}]
+
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (-7.2,0) -- (9.0,0) node[right] {$n$};
+
+\draw[-{Latex[length=1.5mm]},thick,black]
+  (0,-0.15) -- (0,4.55) node[above] {$y[n]$};
+
+\node[ThemeGray,font=\large] at (-6.7,0.25) {$\cdots$};
+\node[ThemeGray,font=\large] at (8.35,4.05) {$\cdots$};
+
+% n < 0: 2^{n+1}
+\foreach \n in {-6,-5,-4,-3,-2,-1}{
+  \pgfmathsetmacro{\v}{pow(2,\n+1)}
+  \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+  \fill[ThemeGreen] (\n,\v) circle (1.9pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+% n >= 0: 4 - 2^{-n}
+\foreach \n in {0,1,2,3,4,5,6,7}{
+  \pgfmathsetmacro{\v}{4-pow(2,-\n)}
+  \draw[very thick,ThemeGreen] (\n,0) -- (\n,\v);
+  \fill[ThemeGreen] (\n,\v) circle (1.9pt);
+  \fill[black] (\n,0) circle (0.65pt);
+}
+
+% asymptote
+\draw[densely dashed,very thick,ThemeOrange]
+  (0,4) -- (8.0,4);
+
+\node[ThemeOrange,left] at (0,4) {$4$};
+
+% ticks
+\foreach \n in {-6,-3,0,3,6}{
+  \draw[black] (\n,0.04) -- (\n,-0.04);
+  \node[below] at (\n,-0.08) {$\n$};
+}
+
+\node[left] at (0,1) {$1$};
+\node[left] at (0,2) {$2$};
+\node[left] at (0,3) {$3$};
+
+\node[ThemeGreen,font=\bfseries] at (4.4,3.15)
+  {\(4-2^{-n}\)};
+
+\node[ThemeGreen,font=\bfseries] at (-3.6,0.95)
+  {\(2^{n+1}\)};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\[
+y[n]
+=
+\begin{cases}
+2^{n+1}, & n<0,\\[4pt]
+4-2^{-n}, & n\ge 0.
+\end{cases}
+\]
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}[plain]
+
+\vfill
+
+\begin{center}
+
+{\fontsize{30}{34}\selectfont\bfseries\color{FrameTitleColor}
+Causality and Stability\par}
+
+% \vspace{0.25cm}
+
+% {\Large\color{ThemeGray}
+% Convolution is simply a mathematical operation that appears very universally.\par}
+
+\end{center}
+
+\vfill
+
+\end{frame}
+
+
+
+
+
+\begin{frame}{Causality: No Time Travel Please!!}
+
+\begin{center}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figs/time-travel.png}
+\end{figure}
+
+\end{center}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{For an LTI system, causality is visible from \(h(t)\)}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+The impulse response \(h(t)\) shows what the system does after we poke it with \(\delta(t)\) at \(t=0\).
+\end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% causal
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Causal}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=1.10cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.6,0) -- (4.0,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.12) -- (0,1.35);
+
+  % zero before impulse
+  \draw[very thick,ThemeGreen] (-2.2,0) -- (0,0);
+
+  % response after 0
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=0:3.4,samples=100] (\x,{exp(-0.75*\x)});
+
+  \draw[densely dashed,ThemeGray] (0,0) -- (0,1.15);
+
+  \node[below] at (0,-0.05) {$0$};
+  \node[ThemeGreen,above] at (1.45,0.60) {\(h(t)\)};
+  \node[ThemeGray] at (-1.25,0.22) {nothing before};
+
+\end{tikzpicture}
+
+\vspace{0.06cm}
+
+\(
+h(t)=0\qquad \text{for }t<0.
+\)
+
+\end{GreenCard}
+\end{column}
+
+% noncausal
+\begin{column}{0.49\textwidth}
+\begin{OrangeCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Noncausal}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.78cm,y=1.10cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-3.2,0) -- (3.4,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.12) -- (0,1.35);
+
+  % response before 0
+  \draw[very thick,ThemeOrange,smooth]
+    plot[domain=-2.8:0,samples=100] (\x,{exp(0.75*\x)});
+
+  % zero after 0
+  \draw[very thick,ThemeGray] (0,0) -- (2.8,0);
+
+  \draw[densely dashed,ThemeGray] (0,0) -- (0,1.15);
+
+  \node[below] at (0,-0.05) {$0$};
+  \node[ThemeOrange,above] at (-1.45,0.58) {\(h(t)\)};
+  \node[ThemeRed,font=\bfseries] at (3.25,0.68) {effect before cause};
+
+\end{tikzpicture}
+
+\vspace{0.06cm}
+
+\(
+h(t)\ne 0\qquad \text{for some }t<0.
+\)
+
+\end{OrangeCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Testing causality: the impulse response must be zero before \(0\)}
+
+\begin{center}
+\begin{GreenCard}[
+  width=\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{For continuous-time LTI systems}
+
+\vspace{0.28cm}
+
+{\Large
+\(
+\boxed{
+\text{causal}
+\quad\Longleftrightarrow\quad
+h(t)=0\ \text{ for all }t<0
+}
+\)
+}
+
+% \vspace{0.12cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% Cannot respond before the impulse is applied.
+% \end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\vspace{0.14cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Discrete-time version}
+
+\[
+\boxed{
+\text{causal}
+\quad\Longleftrightarrow\quad
+h[n]=0\ \text{ for all }n<0
+}
+\]
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Stability means bounded inputs stay bounded}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  fontupper=\large,
+  halign=center
+]{}
+A stable system should not turn a small, bounded input into an output that grows without limit.
+\end{BlueBox}
+
+\vspace{0.12cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+% stable idea
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Stable behavior}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.75cm,y=1.05cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.2,0) -- (4.2,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.10) -- (0,1.35);
+
+  \draw[densely dashed,ThemeGray] (-2.0,1.0) -- (3.8,1.0);
+  \draw[densely dashed,ThemeGray] (-2.0,-1.0) -- (3.8,-1.0);
+
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=-2.0:3.8,samples=160] (\x,{0.75*sin(110*\x)});
+
+  \node[ThemeGreen,above] at (2.3,0.65) {bounded output};
+  \node[left] at (0,1) {\(B\)};
+  \node[left] at (0,-1) {\(-B\)};
+
+\end{tikzpicture}
+
+\end{GreenCard}
+\end{column}
+
+% unstable idea
+\begin{column}{0.49\textwidth}
+\begin{OrangeCard}[halign=center,top=10pt,bottom=10pt]
+\CardTitle{Unstable behavior}
+
+\vspace{0.04cm}
+
+\begin{tikzpicture}[x=0.75cm,y=0.54cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.2,0) -- (4.2,0) node[right] {$t$};
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.20) -- (0,3.2);
+
+  \draw[very thick,ThemeOrange,smooth]
+    plot[domain=-1.2:2.55,samples=140] (\x,{0.30*exp(0.85*\x)});
+
+  \node[ThemeRed,font=\bfseries] at (2.3,2.40) {keeps growing};
+
+\end{tikzpicture}
+
+\end{OrangeCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Stable LTI system: The total area under \(|h(t)|\) must be finite}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Continuous-time LTI stability test}
+
+\vspace{0.08cm}
+
+{\Large
+\(
+\boxed{
+\text{stable}
+\quad\Longleftrightarrow\quad
+\int_{-\infty}^{\infty}|h(t)|\,dt<\infty
+}
+\)
+}
+
+% \vspace{0.10cm}
+
+% \begin{OrangeBox}[
+%   calloutshadedorange,
+%   halign=center,
+%   fontupper=\large
+% ]{}
+% The total area under \(|h(t)|\) must be finite.
+% \end{OrangeBox}
+
+\end{GreenCard}
+\end{center}
+
+\vspace{0.12cm}
+
+\begin{center}
+\begin{BlueCard}[
+  width=0.88\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Discrete-time version}
+
+\[
+\boxed{
+\text{stable}
+\quad\Longleftrightarrow\quad
+\sum_{n=-\infty}^{\infty}|h[n]|<\infty
+}
+\]
+
+\end{BlueCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Practice: decide causality and stability}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  fontupper=\large,
+  halign=center
+]{}
+For each impulse response, decide whether the LTI system is causal and stable.
+\end{OrangeBox}
+
+\vspace{0.14cm}
+
+\begin{columns}[c,totalwidth=\textwidth]
+
+\begin{column}{0.49\textwidth}
+\begin{GreenCard}[halign=center,top=14pt,bottom=14pt]
+\CardTitle{System 1}
+
+\vspace{0.10cm}
+
+{\Large
+\[
+h_1(t)=e^{2t}u(-2-t)
+\]
+}
+
+% \vspace{0.10cm}
+
+% {\normalsize
+% Ask:
+% \[
+% h_1(t)=0\text{ for }t<0?
+% \qquad
+% \int |h_1(t)|dt<\infty?
+% \]
+% }
+
+\end{GreenCard}
+\end{column}
+
+\begin{column}{0.49\textwidth}
+\begin{BlueCard}[halign=center,top=14pt,bottom=14pt]
+\CardTitle{System 2}
+
+\vspace{0.10cm}
+
+{\Large
+\[
+h_2(t)=t e^{-t}u(t)
+\]
+}
+
+% \vspace{0.10cm}
+
+% {\normalsize
+% Ask:
+% \[
+% h_2(t)=0\text{ for }t<0?
+% \qquad
+% \int |h_2(t)|dt<\infty?
+% \]
+% }
+
+\end{BlueCard}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer 1: \(h_1(t)=e^{2t}u(-2-t)\) is not causal}
+
+\begin{center}
+\begin{OrangeCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Support of \(h_1(t)\)}
+
+\vspace{0.06cm}
+
+\[
+u(-2-t)=1
+\quad\Longleftrightarrow\quad
+-2-t\ge 0
+\quad\Longleftrightarrow\quad
+t\le -2.
+\]
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.88cm,y=1.20cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-5.0,0) -- (2.2,0) node[right] {$t$};
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.10) -- (0,1.25);
+
+  % zero after -2
+  \draw[very thick,ThemeGray] (-2,0) -- (1.8,0);
+
+  % nonzero before -2, vertically enlarged
+  \draw[very thick,ThemeOrange,smooth]
+    plot[domain=-4.7:-2,samples=120] (\x,{exp(2*(\x+2))});
+
+  \draw[very thick,ThemeOrange] (-2,1) -- (-2,0);
+
+  \node[ThemeGray,font=\large] at (-4.75,0.18) {$\cdots$};
+  \node[ThemeGray,font=\large] at (1.65,0.18) {$\cdots$};
+
+  \node[below] at (-2,-0.05) {$-2$};
+  \node[below] at (0,-0.05) {$0$};
+
+  \draw[densely dashed,ThemeRed,very thick] (0,0) -- (0,1.05);
+  \node[ThemeRed,above] at (0,1.07) {impulse time};
+
+  \node[ThemeOrange,above] at (-3.35,0.42) {\(t\le -2\)};
+  \node[ThemeGray] at (-3.20,-0.32) {vertical scale enlarged};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{OrangeBox}[
+  calloutshadedorange,
+  halign=center,
+  fontupper=\large
+]{}
+\(h_1(t)\) is nonzero before \(t=0\).  
+So the system is \textbf{not causal}.
+\end{OrangeBox}
+
+\end{OrangeCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer 1: \(h_1(t)=e^{2t}u(-2-t)\) is stable}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.86\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Stability test}
+
+\vspace{0.08cm}
+
+\[
+\int_{-\infty}^{\infty}|h_1(t)|\,dt
+=
+\int_{-\infty}^{-2} e^{2t}\,dt.
+\]
+
+\vspace{0.08cm}
+
+\[
+\int_{-\infty}^{-2} e^{2t}\,dt
+=
+\left[\frac{1}{2}e^{2t}\right]_{-\infty}^{-2}
+=
+\frac{1}{2}e^{-4}
+<\infty.
+\]
+
+\vspace{0.12cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\Large
+]{}
+Therefore, \(h_1(t)\) is \textbf{stable}.
+\end{GreenBox}
+
+\vspace{0.08cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\large
+]{}
+Final decision:
+\[
+h_1(t)=e^{2t}u(-2-t)
+\quad\Rightarrow\quad
+\textbf{not causal, stable}.
+\]
+\end{BlueBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer 2: \(h_2(t)=t e^{-t}u(t)\) is causal}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.92\textwidth,
+  halign=center,
+  top=10pt,
+  bottom=10pt
+]
+\CardTitle{Support of \(h_2(t)\)}
+
+\vspace{0.06cm}
+
+\[
+u(t)=0\quad\text{for }t<0.
+\]
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}[x=0.88cm,y=1.55cm,every node/.style={font=\scriptsize}]
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (-2.4,0) -- (5.2,0) node[right] {$t$};
+
+  \draw[-{Latex[length=1.5mm]},thick,black]
+    (0,-0.08) -- (0,1.10);
+
+  % zero for t<0
+  \draw[very thick,ThemeGreen] (-2.0,0) -- (0,0);
+
+  % t e^{-t}, visually scaled
+  \draw[very thick,ThemeGreen,smooth]
+    plot[domain=0:4.7,samples=140] (\x,{2.55*\x*exp(-\x)});
+
+  \node[ThemeGray,font=\large] at (-1.85,0.15) {$\cdots$};
+  \node[ThemeGray,font=\large] at (4.75,0.15) {$\cdots$};
+
+  \node[below] at (0,-0.04) {$0$};
+  \node[ThemeGreen,above] at (2.0,0.80) {\(t e^{-t}u(t)\)};
+
+  \draw[densely dashed,ThemeRed,very thick] (0,0) -- (0,0.95);
+  \node[ThemeRed,above] at (0,0.97) {impulse time};
+
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\large
+]{}
+\(h_2(t)\) is zero before \(t=0\).  
+So the system is \textbf{causal}.
+\end{GreenBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+% --------------------------------------------------------
+\begin{frame}{Answer 2: \(h_2(t)=t e^{-t}u(t)\) is stable}
+
+\begin{center}
+\begin{GreenCard}[
+  width=0.86\textwidth,
+  halign=center,
+  top=12pt,
+  bottom=12pt
+]
+\CardTitle{Stability test}
+
+\vspace{0.08cm}
+
+\[
+\int_{-\infty}^{\infty}|h_2(t)|\,dt
+=
+\int_{0}^{\infty}t e^{-t}\,dt.
+\]
+
+\vspace{0.08cm}
+
+\[
+\int_{0}^{\infty}t e^{-t}\,dt
+=
+1
+<\infty.
+\]
+
+\vspace{0.12cm}
+
+\begin{GreenBox}[
+  calloutshadedgreen,
+  halign=center,
+  fontupper=\Large
+]{}
+Therefore, \(h_2(t)\) is \textbf{stable}.
+\end{GreenBox}
+
+\vspace{0.08cm}
+
+\begin{BlueBox}[
+  calloutshadedblue,
+  halign=center,
+  fontupper=\large
+]{}
+Final decision:
+\[
+h_2(t)=t e^{-t}u(t)
+\quad\Rightarrow\quad
+\textbf{causal, stable}.
+\]
+\end{BlueBox}
+
+\end{GreenCard}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+
+\end{document}

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>📐 Computing Convolutions  · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+    --accent:#4f46e5; --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --radius:16px;
+    --f:#dc2626;        /* red  : f(x)        */
+    --g:#2563eb;        /* blue : g(t-x)      */
+    --prod:#7c3aed;     /* purple: product    */
+    --conv:#111827;     /* black: convolution */
+    --animate:#2563eb; --stop:#dc2626; --reset:#ea580c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+
+  header.app{margin-bottom:20px}
+  .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  .title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:640px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:15px;margin:0 0 14px;color:var(--muted);font-weight:700;letter-spacing:.01em;text-transform:uppercase;font-size:12px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+
+  /* function selector + params */
+  .fn-col h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+  .dot.f{background:var(--f)} .dot.g{background:var(--g)}
+  select.fn{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-weight:600;background:#fff;color:var(--ink);cursor:pointer}
+  .formula{font-size:14px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:10px 0;color:#374151;text-align:center;min-height:38px;display:flex;align-items:center;justify-content:center}
+  .formula sub{font-size:.72em}
+  .params{display:grid;gap:9px;margin-top:6px}
+  .param{display:grid;grid-template-columns:120px 1fr 52px;align-items:center;gap:10px}
+  .param label{font-size:12.5px;font-weight:600;color:#4b5563}
+  .param input[type=range]{width:100%}
+  .param.f input[type=range]{accent-color:var(--f)} .param.g input[type=range]{accent-color:var(--g)}
+  .param .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+
+  .preview-cell .formula{margin-top:0}
+  .wave-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%}
+  /* lock display heights so the canvas never scales proportionally with width
+     (which would stretch the drawing and clip it under overflow:hidden) */
+  #cvF,#cvG{height:180px}
+  #cvMain{height:380px}
+
+  /* main plot */
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin:14px 2px 0;font-size:13px}
+  .legend span{display:inline-flex;align-items:center;gap:7px;color:#374151}
+  .swatch{width:16px;height:4px;border-radius:2px;flex:none}
+  .swatch.dotline{height:0;border-top:3px dashed}
+  .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+  button.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 18px;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px}
+  button.btn:hover{filter:brightness(.97)}
+  button.btn:active{transform:translateY(1px)}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  button.animate{background:var(--animate);border-color:var(--animate);color:#fff}
+  button.stop{background:var(--stop);border-color:var(--stop);color:#fff}
+  button.reset{background:var(--reset);border-color:var(--reset);color:#fff}
+  .tbar{display:flex;align-items:center;gap:14px;margin-top:14px}
+  .tbar input[type=range]{flex:1;accent-color:var(--conv)}
+  .tval{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;min-width:96px;background:#f1f2f7;border-radius:8px;padding:6px 10px;text-align:center}
+  .hint{font-size:13px;color:var(--muted);margin:14px 2px 0}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px;line-height:1.7}
+  footer a{color:var(--accent);text-decoration:none;font-weight:600}
+  footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="site">
+
+  <aside class="sidebar" id="siteSidebar"></aside>
+
+  <main class="content">
+  <div class="wrap">
+
+    <header class="app">
+      <div class="title">
+        <h1>📐 Computing Convolutions</h1>
+        <p>Convolution isn't magic — it's the <b>area of overlap</b> after you reflect one signal and slide it across the other. Pick two shapes, then watch <b>(f∗g)(t) = ∫ f(x)·g(t−x) dx</b> get built one value at a time.</p>
+      </div>
+    </header>
+
+    <!-- CONTROLS -->
+    <section class="card">
+      <div class="grid2">
+        <div class="fn-col">
+          <h3><span class="dot f"></span> f(x) — fixed</h3>
+          <select class="fn" id="fSelect"></select>
+          <div class="formula" id="fFormula"></div>
+          <div class="params f" id="fParams"></div>
+        </div>
+        <div class="fn-col">
+          <h3><span class="dot g"></span> g(x) — flips &amp; slides rightward</h3>
+          <select class="fn" id="gSelect"></select>
+          <div class="formula" id="gFormula"></div>
+          <div class="params g" id="gParams"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREVIEWS -->
+    <section class="card">
+      <h2>The two signals</h2>
+      <div class="grid2">
+        <div class="preview-cell">
+          <div class="wave-wrap"><canvas id="cvF" height="180"></canvas></div>
+        </div>
+        <div class="preview-cell">
+          <div class="wave-wrap"><canvas id="cvG" height="180"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN -->
+    <section class="card">
+      <h2>Reflect · shift · multiply · integrate</h2>
+      <div class="wave-wrap"><canvas id="cvMain" height="380"></canvas></div>
+
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--f)"></i> f(x)</span>
+        <span><i class="swatch" style="background:var(--g)"></i> g(t−x)</span>
+        <span><i class="swatch" style="background:var(--prod);opacity:.5"></i> f(x)·g(t−x)</span>
+        <span><i class="swatch" style="background:var(--conv)"></i> (f∗g)(t)</span>
+        <span><i class="swatch dotline" style="border-color:var(--conv)"></i> current t</span>
+      </div>
+
+      <div class="controls">
+        <button class="btn animate" id="animateBtn">▶ Animate</button>
+        <button class="btn stop" id="stopBtn" disabled>⏸ Stop</button>
+        <button class="btn reset" id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="tbar">
+        <span style="font-weight:700;color:var(--muted);font-size:13px">t</span>
+        <input type="range" id="tSlider" />
+        <span class="tval" id="tVal">t = 0.00</span>
+      </div>
+      <p class="hint">Move the slider (or press <b>Animate</b>). At each <b>t</b>, the blue curve is g reflected and shifted to <b>g(t−x)</b>; the <b>purple area</b> is the product f(x)·g(t−x); its total area is one <b>black</b> output value (f∗g)(t).</p>
+    </section>
+
+    <footer>
+      Computing Convolution · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.<br>
+      Inspired by <a href="https://phiresky.github.io/convolution-demo/" target="_blank" rel="noopener">phiresky's convolution demo</a>.
+    </footer>
+
+  </div>
+  </main>
+
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ====================================================================
+   FUNCTION LIBRARY
+   ==================================================================== */
+const FN = {
+  triangle:{
+    name:'Triangle',
+    params:[{k:'ax',label:'half-width aₓ',min:0.3,max:3,step:0.05,val:1},
+            {k:'ay',label:'height a_y',min:0.3,max:2,step:0.05,val:1}],
+    f:(p,x)=> Math.abs(x)<=p.ax ? p.ay - (p.ay/p.ax)*Math.abs(x) : 0,
+    support:p=>[-p.ax,p.ax],
+    formula:(p,nm)=>`${nm} = a_y − (a_y∕aₓ)·|x|,&nbsp; |x| ≤ aₓ`
+  },
+  square:{
+    name:'Square',
+    params:[{k:'ax',label:'half-width aₓ',min:0.2,max:3,step:0.05,val:0.5},
+            {k:'ay',label:'height a_y',min:0.3,max:2,step:0.05,val:1}],
+    f:(p,x)=> Math.abs(x)<=p.ax ? p.ay : 0,
+    support:p=>[-p.ax,p.ax],
+    formula:(p,nm)=>`${nm} = a_y,&nbsp; |x| ≤ aₓ&nbsp; (else 0)`
+  },
+  gaussian:{
+    name:'Gaussian',
+    params:[{k:'a',label:'width a',min:0.15,max:1.5,step:0.05,val:0.4}],
+    f:(p,x)=> Math.exp(-x*x/(p.a*p.a))/(p.a*Math.sqrt(Math.PI)),
+    support:p=>[-5*p.a,5*p.a],
+    formula:(p,nm)=>`${nm} = e^(−x²∕a²) ∕ (a·√π)`
+  },
+  sawtooth:{
+    name:'Sawtooth (ramp)',
+    params:[{k:'bx',label:'start x',min:-2,max:2,step:0.1,val:0},
+            {k:'by',label:'start y',min:-1.5,max:2,step:0.1,val:0},
+            {k:'bx2',label:'end x',min:-2,max:3,step:0.1,val:1},
+            {k:'by2',label:'end y',min:-1.5,max:2,step:0.1,val:1}],
+    f:(p,x)=>{const a=Math.min(p.bx,p.bx2),b=Math.max(p.bx,p.bx2);
+      if(x<a||x>b||p.bx2===p.bx)return 0;
+      return (p.by2-p.by)/(p.bx2-p.bx)*(x-p.bx)+p.by;},
+    support:p=>[Math.min(p.bx,p.bx2),Math.max(p.bx,p.bx2)],
+    formula:(p,nm)=>`${nm} = ramp from (bₓ,b_y) to (bₓ′,b_y′)`
+  }
+};
+
+/* ====================================================================
+   STATE
+   ==================================================================== */
+let fKind='triangle', gKind='square';
+const fp={}, gp={};                 // current parameter values
+let t=0, tMin=-4, tMax=4;
+let conv=null;                      // {ts:Float32Array, cs:Float32Array}
+let plotXMin=-5, plotXMax=5, yLo=-0.2, yHi=1.2;
+let raf=null, lastTs=0;
+
+function initParams(){
+  fp.kind=null; for(const p of FN[fKind].params) fp[p.k]=p.val;
+  gp.kind=null; for(const p of FN[gKind].params) gp[p.k]=p.val;
+}
+const fval = x => FN[fKind].f(fp,x);
+const gval = x => FN[gKind].f(gp,x);
+
+/* ====================================================================
+   NUMERICS — exact-ish convolution by integrating over f's support
+   ==================================================================== */
+function precompute(){
+  const [fm,fM]=FN[fKind].support(fp);
+  const [gm,gM]=FN[gKind].support(gp);
+  const gW=gM-gm;
+  // integration grid over where f lives (f=0 outside → product=0 there)
+  const span=Math.max(1e-3, fM-fm);
+  const steps=Math.min(2000, Math.max(400, Math.round(span/0.01)));
+  const dx=span/steps;
+  // t range: full overlap sweep + margin
+  const m=Math.max(0.4, 0.12*(fM-fm+gW));
+  tMin=fm+gm-m; tMax=fM+gM+m;
+  const N=600;
+  const ts=new Float32Array(N), cs=new Float32Array(N);
+  // track the true min/max of the purple product over the WHOLE sweep so the
+  // y-range always contains it (nothing ever gets clipped / hidden).
+  let prodHi=0, prodLo=0;
+  for(let i=0;i<N;i++){
+    const tt=tMin+(i/(N-1))*(tMax-tMin);
+    let s=0;
+    for(let j=0;j<=steps;j++){ const x=fm+j*dx; const pr=fval(x)*gval(tt-x); s+=pr; if(pr>prodHi)prodHi=pr; if(pr<prodLo)prodLo=pr; }
+    cs[i]=s*dx; ts[i]=tt;
+  }
+  conv={ts,cs};
+  // plotting windows
+  plotXMin=Math.min(fm-gW, tMin)-0.3;
+  plotXMax=Math.max(fM+gW, tMax)+0.3;
+  // y range that fully contains everything drawn: f, g, the product, and the
+  // convolution output — so no curve is ever clamped out of view.
+  let hi=0, lo=0;
+  const scan=(v)=>{ if(v>hi)hi=v; if(v<lo)lo=v; };
+  for(let x=plotXMin;x<=plotXMax;x+=(plotXMax-plotXMin)/400){ scan(fval(x)); scan(gval(x)); }
+  for(let i=0;i<N;i++) scan(cs[i]);
+  scan(prodHi); scan(prodLo);
+  const padH=0.12*Math.max(1e-6,hi-lo);
+  yHi=hi+padH; yLo=Math.min(0,lo)-padH;
+}
+function cAt(tt){
+  if(!conv) return 0;
+  const {ts,cs}=conv, N=ts.length;
+  if(tt<=ts[0]) return cs[0];
+  if(tt>=ts[N-1]) return cs[N-1];
+  const f=(tt-tMin)/(tMax-tMin)*(N-1), i=Math.floor(f), fr=f-i;
+  return cs[i]*(1-fr)+cs[i+1]*fr;
+}
+
+/* ====================================================================
+   PLOTTING (Canvas)
+   ==================================================================== */
+function fit(cv){
+  const dpr=window.devicePixelRatio||1;
+  // use the ACTUAL displayed CSS size (height is locked via CSS) so the drawing
+  // space always matches what's on screen — no stretching, no clipping.
+  const w=cv.clientWidth||cv.parentElement.clientWidth;
+  const h=cv.clientHeight||parseInt(cv.getAttribute('height'));
+  const W=Math.round(w*dpr), H=Math.round(h*dpr);
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  return {g,w,h};
+}
+function step5(range){
+  const raw=range/8, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  const m = f<1.5?1 : f<3?2 : f<7?5 : 10;
+  return m*p;
+}
+function frame(g,w,h){ return {x0:42,y0:12,w:w-54,h:h-30}; }
+
+function axes(g,R,xR,yR){
+  const X=x=>R.x0+(x-xR[0])/(xR[1]-xR[0])*R.w;
+  const Y=y=>R.y0+R.h-(y-yR[0])/(yR[1]-yR[0])*R.h;
+  // grid
+  const xs=step5(xR[1]-xR[0]), ys=step5(yR[1]-yR[0]);
+  g.font='10px system-ui'; g.textBaseline='middle';
+  g.strokeStyle='#eef0f6'; g.fillStyle='#9aa1b1'; g.lineWidth=1;
+  for(let x=Math.ceil(xR[0]/xs)*xs; x<=xR[1]; x+=xs){
+    const px=X(x); g.beginPath(); g.moveTo(px,R.y0); g.lineTo(px,R.y0+R.h); g.stroke();
+    if(Math.abs(x)>1e-9){ g.textAlign='center'; g.fillText(fmt(x), px, R.y0+R.h+10); }
+  }
+  for(let y=Math.ceil(yR[0]/ys)*ys; y<=yR[1]; y+=ys){
+    const py=Y(y); g.beginPath(); g.moveTo(R.x0,py); g.lineTo(R.x0+R.w,py); g.stroke();
+    if(Math.abs(y)>1e-9){ g.textAlign='right'; g.fillText(fmt(y), R.x0-6, py); }
+  }
+  // axes (x at y=0, y at x=0 if visible)
+  g.strokeStyle='#9aa1b1'; g.lineWidth=1.3;
+  const y0=Y(0); g.beginPath(); g.moveTo(R.x0,y0); g.lineTo(R.x0+R.w,y0); g.stroke();
+  arrow(g,R.x0+R.w,y0,1,0);
+  if(xR[0]<0&&xR[1]>0){ const x0=X(0); g.beginPath(); g.moveTo(x0,R.y0+R.h); g.lineTo(x0,R.y0); g.stroke(); arrow(g,x0,R.y0,0,-1); }
+  return {X,Y};
+}
+function arrow(g,x,y,dx,dy){ g.fillStyle='#9aa1b1'; g.beginPath(); g.moveTo(x,y); g.lineTo(x-7*dx+3*dy,y-7*dy-3*dx); g.lineTo(x-7*dx-3*dy,y-7*dy+3*dx); g.closePath(); g.fill(); }
+function fmt(v){ const a=Math.abs(v); const s=a<1?v.toFixed(1):(Math.round(v*10)/10); return (''+s).replace('-','−'); }
+
+function curve(g,R,xR,yR,fn,color,width){
+  const X=x=>R.x0+(x-xR[0])/(xR[1]-xR[0])*R.w, Y=y=>R.y0+R.h-(y-yR[0])/(yR[1]-yR[0])*R.h;
+  g.strokeStyle=color; g.lineWidth=width; g.lineJoin='round'; g.beginPath();
+  const N=Math.round(R.w);
+  for(let i=0;i<=N;i++){ const x=xR[0]+(i/N)*(xR[1]-xR[0]); const y=Math.max(yR[0],Math.min(yR[1],fn(x))); i===0?g.moveTo(X(x),Y(y)):g.lineTo(X(x),Y(y)); }
+  g.stroke();
+}
+function fillArea(g,R,xR,yR,fn,color,alpha){
+  const X=x=>R.x0+(x-xR[0])/(xR[1]-xR[0])*R.w, Y=y=>R.y0+R.h-(y-yR[0])/(yR[1]-yR[0])*R.h;
+  const y0=Y(0); g.beginPath(); g.moveTo(X(xR[0]),y0);
+  const N=Math.round(R.w);
+  for(let i=0;i<=N;i++){ const x=xR[0]+(i/N)*(xR[1]-xR[0]); const y=Math.max(yR[0],Math.min(yR[1],fn(x))); g.lineTo(X(x),Y(y)); }
+  g.lineTo(X(xR[1]),y0); g.closePath();
+  g.globalAlpha=alpha; g.fillStyle=color; g.fill(); g.globalAlpha=1;
+}
+
+/* ---- preview plots ---- */
+function drawPreview(cvId, kind, params, color){
+  const cv=$(cvId); const {g,w,h}=fit(cv); g.clearRect(0,0,w,h);
+  // keep the window centered on the origin so x=0 is always in the middle
+  // (otherwise an asymmetric shape like the sawtooth looks "shifted")
+  const [sm,sM]=FN[kind].support(params);
+  const M=Math.max(Math.abs(sm),Math.abs(sM),0.8)+0.4;
+  const xR=[-M, M];
+  // y range (with a little extra room below so y=0 isn't jammed on the axis)
+  let hi=0,lo=0; for(let x=xR[0];x<=xR[1];x+=(xR[1]-xR[0])/300){ const v=FN[kind].f(params,x); if(v>hi)hi=v; if(v<lo)lo=v; }
+  const sp=Math.max(1e-6,hi-lo), pad=0.15*sp;
+  const yR=[Math.min(0,lo)-pad-0.12*sp, hi+pad];
+  const R=frame(g,w,h); const {X,Y}=axes(g,R,xR,yR);
+  curve(g,R,xR,yR,x=>FN[kind].f(params,x),color,2.4);
+  // mark the endpoints of the function's nonzero support, so e.g. the
+  // sawtooth's foot is visibly pinned at the origin (0,0).
+  const clampY=v=>Math.max(yR[0],Math.min(yR[1],v));
+  g.fillStyle=color;
+  [sm,sM].forEach(px=>{ if(!isFinite(px))return; const py=FN[kind].f(params,px);
+    g.beginPath(); g.arc(X(px),Y(clampY(py)),3.4,0,7); g.fill(); });
+}
+
+/* ---- main plot ---- */
+function drawMain(){
+  const cv=$('cvMain'); const {g,w,h}=fit(cv); g.clearRect(0,0,w,h);
+  const xR=[plotXMin,plotXMax], yR=[yLo,yHi];
+  const R=frame(g,w,h); const {X,Y}=axes(g,R,xR,yR);
+  // purple product fill (under everything else but above grid)
+  fillArea(g,R,xR,yR,x=>fval(x)*gval(t-x),'#7c3aed',0.32);
+  curve(g,R,xR,yR,x=>fval(x)*gval(t-x),'#7c3aed',1.4);
+  // f(x) red (fixed)
+  curve(g,R,xR,yR,x=>fval(x),'#dc2626',2.6);
+  // g(t-x) blue (reflected + shifted)
+  curve(g,R,xR,yR,x=>gval(t-x),'#2563eb',2.6);
+  // black convolution output (f*g)(t): traced gradually up to the current t
+  const {ts,cs}=conv;
+  g.strokeStyle='#111827'; g.lineWidth=3; g.lineJoin='round'; g.beginPath();
+  let started=false;
+  for(let i=0;i<ts.length;i++){
+    if(ts[i]>t+1e-9) break;
+    const px=X(ts[i]), py=Y(Math.max(yR[0],Math.min(yR[1],cs[i])));
+    started?g.lineTo(px,py):(g.moveTo(px,py),started=true);
+  }
+  g.stroke();
+  // current-t marker + dot
+  const cy=cAt(t);
+  g.strokeStyle='rgba(17,24,39,.45)'; g.setLineDash([4,4]); g.lineWidth=1.3;
+  g.beginPath(); g.moveTo(X(t),R.y0); g.lineTo(X(t),R.y0+R.h); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#111827'; g.beginPath(); g.arc(X(t),Y(Math.max(yR[0],Math.min(yR[1],cy))),4.5,0,7); g.fill();
+}
+
+/* ====================================================================
+   UI WIRING
+   ==================================================================== */
+function buildSelect(sel, kind){
+  sel.innerHTML='';
+  for(const key in FN){ const o=document.createElement('option'); o.value=key; o.textContent=FN[key].name; sel.appendChild(o); }
+  sel.value=kind;
+}
+function buildParams(boxId, kind, params, cls){
+  const box=$(boxId); box.innerHTML='';
+  for(const p of FN[kind].params){
+    const row=document.createElement('div'); row.className='param '+cls;
+    row.innerHTML=`<label>${p.label}</label><input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${params[p.k]}"><span class="val">${(+params[p.k]).toFixed(2)}</span>`;
+    const r=row.querySelector('input'), v=row.querySelector('.val');
+    r.addEventListener('input',e=>{ params[p.k]=parseFloat(e.target.value); v.textContent=params[p.k].toFixed(2); recompute(); });
+    box.appendChild(row);
+  }
+}
+function refreshFormulas(){
+  $('fFormula').innerHTML = FN[fKind].formula(fp,'f(x)');
+  $('gFormula').innerHTML = FN[gKind].formula(gp,'g(x)');
+}
+function setT(nt, fromSlider){
+  t=Math.max(tMin,Math.min(tMax,nt));
+  $('tVal').textContent='t = '+(t<0?'−':'')+Math.abs(t).toFixed(2);
+  if(!fromSlider) $('tSlider').value=t;
+  drawMain();
+}
+function syncSlider(){
+  const s=$('tSlider'); s.min=tMin; s.max=tMax; s.step=(tMax-tMin)/600;
+}
+
+/* full rebuild when functions/params change — also auto-resets the
+   lower panel: any running animation stops and t snaps back to the start. */
+function recompute(){
+  stopAnim();
+  precompute();
+  refreshFormulas();
+  drawPreview('cvF', fKind, fp, '#dc2626');
+  drawPreview('cvG', gKind, gp, '#2563eb');
+  syncSlider();
+  t=tMin;
+  setT(t);
+}
+
+/* animation */
+function tick(ts){
+  if(!lastTs) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  const speed=(tMax-tMin)/6.5;       // full sweep ≈ 6.5 s
+  let nt=t+speed*dt;
+  if(nt>=tMax){ setT(tMax); stopAnim(); return; }
+  setT(nt); raf=requestAnimationFrame(tick);
+}
+function startAnim(){
+  if(raf) return;
+  if(t>=tMax-1e-6) setT(tMin);
+  lastTs=0; $('animateBtn').disabled=true; $('stopBtn').disabled=false;
+  raf=requestAnimationFrame(tick);
+}
+function stopAnim(){
+  if(raf){ cancelAnimationFrame(raf); raf=null; }
+  $('animateBtn').disabled=false; $('stopBtn').disabled=true;
+}
+function resetAnim(){ stopAnim(); setT(tMin); }
+
+function init(){
+  initParams();
+  buildSelect($('fSelect'), fKind);
+  buildSelect($('gSelect'), gKind);
+  buildParams('fParams', fKind, fp, 'f');
+  buildParams('gParams', gKind, gp, 'g');
+
+  $('fSelect').addEventListener('change',e=>{ fKind=e.target.value; for(const p of FN[fKind].params) fp[p.k]=p.val; buildParams('fParams',fKind,fp,'f'); stopAnim(); recompute(); });
+  $('gSelect').addEventListener('change',e=>{ gKind=e.target.value; for(const p of FN[gKind].params) gp[p.k]=p.val; buildParams('gParams',gKind,gp,'g'); stopAnim(); recompute(); });
+  $('tSlider').addEventListener('input',e=>{ stopAnim(); setT(parseFloat(e.target.value), true); });
+  $('animateBtn').addEventListener('click',startAnim);
+  $('stopBtn').addEventListener('click',stopAnim);
+  $('resetBtn').addEventListener('click',resetAnim);
+  window.addEventListener('resize',()=>{ if(conv){ drawPreview('cvF',fKind,fp,'#dc2626'); drawPreview('cvG',gKind,gp,'#2563eb'); drawMain(); } });
+
+  recompute();
+  setT(tMin);
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
