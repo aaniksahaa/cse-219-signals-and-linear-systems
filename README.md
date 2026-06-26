@@ -9,7 +9,7 @@ visualizations for CSE 219. It's built to be served for free on **GitHub Pages**
 | File | What it is |
 |------|------------|
 | `index.html` | Course home — hero + cards linking to each demo. |
-| `convolution.html` | **Convolution & LTI Systems** demo: pick a system by its impulse response h[n] and hear y = x ∗ h. |
+| `listening-to-convolution.html` | **Convolution & LTI Systems** demo: pick a system by its impulse response h[n] and hear y = x ∗ h. |
 | `assets/site.css` | Shared styles for the site shell (sidebar + layout). |
 | `assets/site.js` | **Single source of truth for the sidebar** — brand, nav links, footer. |
 | `.nojekyll` | Tells GitHub Pages to serve files as-is (no Jekyll processing). |

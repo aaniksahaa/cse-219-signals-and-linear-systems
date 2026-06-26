@@ -19,7 +19,7 @@
       { href: "index.html", icon: "🏠", label: "Home" },
       { group: "Interactive Demos" },
       { href: "computing-convolution.html", icon: "📐", label: "Computing Convolutions" },
-      { href: "convolution.html", icon: "🎧", label: "Listening to Convolutions" },
+      { href: "listening-to-convolution.html", icon: "🎧", label: "Listening to Convolutions" },
       { icon: "🌀", label: "Fourier Series", soon: true },
     ],
     footer: "Anik Saha<br>aaniksahaa.2001@gmail.com",
