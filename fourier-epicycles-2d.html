@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Fourier Epicycles: 2D Drawing · CSE 219</title>
+<title>✒️ Fourier Epicycles: 2D Drawing · CSE 219</title>
 <link rel="stylesheet" href="assets/site.css" />
 <script src="assets/site.js" defer></script>
 <style>
@@ -371,8 +371,8 @@ function drawMain(){
     const next = add(p,v);
     const nc = map(next);
     if(state.showCircles && term.mag > 1e-5){
-      ctx.strokeStyle = "rgba(165,180,252,.68)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(17,24,39,.32)";
+      ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(pc.x,pc.y,term.mag*Math.min(w,h)*.42,0,Math.PI*2); ctx.stroke();
     }
     if(state.showVectors){
