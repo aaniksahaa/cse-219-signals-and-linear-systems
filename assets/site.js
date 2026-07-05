@@ -17,10 +17,14 @@
     // nav items: {href, icon, label} · {group:"Heading"} · {icon,label,soon:true}
     nav: [
       { href: "index.html", icon: "🏠", label: "Home" },
-      { group: "Interactive Demos" },
+      { group: "Convolution" },
       { href: "computing-convolution.html", icon: "📐", label: "Computing Convolutions" },
       { href: "listening-to-convolution.html", icon: "🎧", label: "Listening to Convolutions" },
-      { icon: "🌀", label: "Fourier Series", soon: true },
+      { group: "Fourier Series" },
+      { href: "fourier-vibrating-string.html", icon: "〰️", label: "Vibrating String" },
+      { href: "fourier-heat-diffusion.html", icon: "🔥", label: "Heat Diffusion" },
+      { href: "fourier-epicycles-1d.html", icon: "🌀", label: "1D Epicycles" },
+      { href: "fourier-epicycles-2d.html", icon: "✒️", label: "2D Epicycles" },
     ],
     footer: "Anik Saha<br>aaniksahaa.2001@gmail.com",
   };

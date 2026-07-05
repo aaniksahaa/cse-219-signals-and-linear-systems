@@ -60,13 +60,14 @@ a.demo-card:hover{border-color:#c9cdfb;box-shadow:0 2px 4px rgba(16,24,40,.06),0
 /* mobile: sidebar becomes a horizontal top bar */
 @media(max-width:860px){
   .site{flex-direction:column}
+  .content{width:100vw;max-width:100vw;overflow-x:hidden}
   .sidebar{
     width:auto;height:auto;position:sticky;top:0;z-index:20;flex-direction:row;align-items:center;
-    overflow-x:auto;padding:10px 12px;gap:8px;border-right:0;border-bottom:1px solid var(--line);
+    overflow-x:auto;max-width:100vw;min-width:0;padding:10px 12px;gap:8px;border-right:0;border-bottom:1px solid var(--line);
   }
   .brand{border-bottom:0;padding:0 8px 0 4px;margin-bottom:0;flex:none}
   .brand .name{display:none}
-  .nav{flex-direction:row;gap:4px}
+  .nav{flex-direction:row;gap:4px;min-width:0}
   .nav .group,.side-foot{display:none}
   .nav a{white-space:nowrap;padding:8px 10px}
   .nav a small{display:none}

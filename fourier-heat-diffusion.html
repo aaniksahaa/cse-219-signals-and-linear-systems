@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fourier Series and Heat Diffusion · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+    --accent:#4f46e5; --heat:#ea580c; --initial:#9ca3af; --avg:#059669; --spectrum:#7c3aed;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 80px}
+  header.app{margin-bottom:22px}
+  .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  .title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:800px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:12px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:1.1fr .95fr .95fr;gap:14px}
+  .grid2 > *,.grid3 > *{min-width:0}
+  .control{display:grid;grid-template-columns:150px 1fr 66px;align-items:center;gap:10px;margin:10px 0}
+  .control label{font-size:13px;font-weight:700;color:#4b5563}
+  .control input[type=range]{width:100%;accent-color:var(--accent)}
+  .control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+  select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:#cdd2e0;background:#fafbff}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--accent)}
+  .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .equation b{color:var(--ink)}
+  .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%;touch-action:none}
+  #heatCanvas{height:320px}
+  #rodCanvas{height:58px}
+  #spectrumCanvas{height:190px}
+  #componentsCanvas{height:340px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 2px 0;font-size:13px;color:#374151}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:18px;height:4px;border-radius:2px;display:inline-block}
+  .swatch.dashed{height:0;border-top:3px dashed}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .hint{font-size:13px;color:var(--muted);margin:12px 2px 0}
+  .draw-on{box-shadow:0 0 0 3px rgba(79,70,229,.16)}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+  @media(max-width:860px){
+    .grid2,.grid3{grid-template-columns:1fr}
+    .control{grid-template-columns:1fr;gap:6px}
+    .control input[type=range]{min-width:0}
+    .control .val{text-align:left}
+    #heatCanvas{height:280px}
+  }
+</style>
+</head>
+<body>
+<div class="site">
+  <aside class="sidebar" id="siteSidebar"></aside>
+
+  <main class="content">
+  <div class="wrap">
+    <header class="app">
+      <div class="title">
+        <h1>🔥 Fourier Series and Heat Diffusion</h1>
+        <p>Draw an initial temperature distribution. The app decomposes it into heat modes, decays each mode analytically, and adds the pieces back together.</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Initial temperature and model controls</h2>
+      <div class="grid3">
+        <div>
+          <label class="toggle" style="display:block;margin-bottom:8px">Preset</label>
+          <select id="presetSelect"></select>
+          <div style="height:10px"></div>
+          <label class="toggle" style="display:block;margin-bottom:8px">Boundary condition</label>
+          <select id="boundarySelect">
+            <option value="insulated">Insulated ends: u_x(0,t)=u_x(L,t)=0</option>
+            <option value="cold">Cold ends: u(0,t)=u(L,t)=0</option>
+          </select>
+        </div>
+        <div>
+          <div class="control">
+            <label for="kappaSlider">Thermal diffusivity κ</label>
+            <input id="kappaSlider" type="range" min="0.01" max="0.30" step="0.01" value="0.08" />
+            <span class="val" id="kappaVal">0.08</span>
+          </div>
+          <div class="control">
+            <label for="modesSlider">Modes N</label>
+            <input id="modesSlider" type="range" min="1" max="80" step="1" value="50" />
+            <span class="val" id="modesVal">50</span>
+          </div>
+        </div>
+        <div>
+          <div class="control">
+            <label for="timeSlider">Time t</label>
+            <input id="timeSlider" type="range" min="0" max="3" step="0.005" value="0" />
+            <span class="val" id="timeVal">0.00</span>
+          </div>
+          <div class="control">
+            <label for="animSpeedSlider">Animation speed</label>
+            <input id="animSpeedSlider" type="range" min="0.05" max="1.00" step="0.05" value="0.20" />
+            <span class="val" id="animSpeedVal">0.20×</span>
+          </div>
+          <div class="row">
+            <label class="toggle"><input id="drawToggle" type="checkbox" /> Draw</label>
+            <label class="toggle"><input id="initialToggle" type="checkbox" checked /> Initial</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Temperature evolution</h2>
+      <div class="wave-wrap" id="heatWrap"><canvas id="heatCanvas" height="320"></canvas></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--heat)"></i> u<sub>N</sub>(x,t)</span>
+        <span><i class="swatch dashed" style="border-color:var(--initial)"></i> initial f(x)</span>
+        <span><i class="swatch dashed" style="border-color:var(--avg)"></i> final level</span>
+      </div>
+      <div class="wave-wrap" style="margin-top:14px"><canvas id="rodCanvas" height="58"></canvas></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" id="playBtn">▶ Play</button>
+        <button class="btn danger" id="pauseBtn" disabled>⏸ Pause</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+        <span class="meta">
+          <span>final level <b id="finalVal">0.000</b></span>
+          <span>temperature spread <b id="variationVal">0.000</b></span>
+        </span>
+      </div>
+      <p class="hint">Turn on <b>Draw</b>, then drag on the plot. In the insulated case the rod approaches the average temperature; in the cold-end case every sine mode decays toward zero.</p>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <h2>Fourier coefficients</h2>
+        <div class="wave-wrap"><canvas id="spectrumCanvas" height="190"></canvas></div>
+        <p class="hint">Light bars are initial coefficients; dark bars are the surviving coefficients at the current time.</p>
+      </div>
+      <div class="card">
+        <h2>Important mode contributions</h2>
+        <div class="control" style="margin-top:0">
+          <label for="importantSlider">Show first K</label>
+          <input id="importantSlider" type="range" min="1" max="10" step="1" value="5" />
+          <span class="val" id="importantVal">5</span>
+        </div>
+        <div class="wave-wrap"><canvas id="componentsCanvas" height="340"></canvas></div>
+        <p class="hint">These are the largest non-constant Fourier components, stacked separately so their decay is visible.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="equation" id="equationBox">
+        <b>Insulated rod:</b>
+        u<sub>N</sub>(x,t)=a<sub>0</sub>/2+
+        Σ<sub>n=1</sub><sup>N</sup>
+        a<sub>n</sub>e<sup>-κ(nπ/L)²t</sup>cos(nπx/L).
+      </div>
+    </section>
+
+    <footer>Fourier heat modes · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+  </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const L = 1, M = 512, MAX_N = 80;
+const shape = new Float64Array(M);
+const current = new Float64Array(M);
+const coeff = new Float64Array(MAX_N + 1);
+const liveCoeff = new Float64Array(MAX_N + 1);
+const componentLine = new Float64Array(M);
+let rankedModes = [];
+const cosTable = Array.from({length: MAX_N + 1}, () => new Float64Array(M));
+const sinTable = Array.from({length: MAX_N + 1}, () => new Float64Array(M));
+for(let j=0;j<M;j++) cosTable[0][j] = 1;
+for(let n=1;n<=MAX_N;n++){
+  for(let j=0;j<M;j++){
+    const x = j / (M - 1);
+    cosTable[n][j] = Math.cos(n * Math.PI * x);
+    sinTable[n][j] = Math.sin(n * Math.PI * x);
+  }
+}
+
+const presets = [
+  {id:"left", label:"Warm left half, cold right half", fill:fillLeftWarm},
+  {id:"center", label:"Central warm bump", fill:fillCenterBump},
+  {id:"triangle", label:"Triangular temperature", fill:fillTriangle},
+  {id:"twospots", label:"Two warm spots", fill:fillTwoSpots},
+  {id:"random", label:"Random smooth heat", fill:fillSmoothRandom},
+  {id:"draw", label:"User drawing", fill:f=>{}}
+];
+
+const state = {
+  boundary: "insulated",
+  kappa: 0.08,
+  N: 50,
+  importantCount: 5,
+  animSpeed: 0.20,
+  t: 0,
+  draw: false,
+  showInitial: true,
+  raf: null,
+  lastFrame: 0,
+  dragging: false,
+  lastDraw: null
+};
+
+function fillLeftWarm(f){
+  for(let j=0;j<M;j++) f[j] = j < M / 2 ? 1 : 0;
+}
+function fillCenterBump(f){
+  for(let j=0;j<M;j++){
+    const x = j / (M - 1);
+    f[j] = Math.exp(-Math.pow((x - .5) / .13, 2));
+  }
+}
+function fillTriangle(f){
+  for(let j=0;j<M;j++){
+    const x = j / (M - 1);
+    f[j] = x <= .5 ? 2 * x : 2 * (1 - x);
+  }
+}
+function fillTwoSpots(f){
+  for(let j=0;j<M;j++){
+    const x = j / (M - 1);
+    f[j] = .95 * Math.exp(-Math.pow((x - .28) / .07, 2)) + .72 * Math.exp(-Math.pow((x - .72) / .09, 2));
+  }
+  clamp01(f);
+}
+function fillSmoothRandom(f){
+  const amps = [.52, .20, -.15, .10, -.08, .05];
+  for(let j=0;j<M;j++){
+    const x = j / (M - 1);
+    let y = .46;
+    for(let n=1;n<=amps.length;n++) y += amps[n - 1] * Math.cos(n * Math.PI * x);
+    f[j] = y;
+  }
+  normalize01(f);
+}
+function clamp01(f){
+  for(let j=0;j<M;j++) f[j] = Math.max(0, Math.min(1, f[j]));
+}
+function normalize01(f){
+  let lo = Infinity, hi = -Infinity;
+  for(const v of f){ lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  const span = Math.max(1e-9, hi - lo);
+  for(let j=0;j<M;j++) f[j] = (f[j] - lo) / span;
+}
+function enforceBoundary(f){
+  clamp01(f);
+  if(state.boundary === "cold"){ f[0] = 0; f[M - 1] = 0; }
+}
+function trapezoidSum(values, basis){
+  const dx = L / (M - 1);
+  let s = 0;
+  for(let j=0;j<M;j++){
+    const w = (j === 0 || j === M - 1) ? 0.5 : 1;
+    s += w * values[j] * basis[j];
+  }
+  return s * dx;
+}
+function computeCoefficients(){
+  if(state.boundary === "insulated"){
+    coeff[0] = 2 / L * trapezoidSum(shape, cosTable[0]);
+    for(let n=1;n<=MAX_N;n++) coeff[n] = 2 / L * trapezoidSum(shape, cosTable[n]);
+  }else{
+    coeff[0] = 0;
+    for(let n=1;n<=MAX_N;n++) coeff[n] = 2 / L * trapezoidSum(shape, sinTable[n]);
+  }
+  rankedModes = Array.from({length: state.N}, (_, i) => i + 1)
+    .sort((a,b) => Math.abs(coeff[b]) - Math.abs(coeff[a]));
+  computeCurrent();
+}
+function decay(n){
+  return Math.exp(-state.kappa * Math.pow(n * Math.PI / L, 2) * state.t);
+}
+function computeCurrent(){
+  if(state.boundary === "insulated"){
+    liveCoeff[0] = coeff[0] / 2;
+    for(let n=1;n<=state.N;n++) liveCoeff[n] = coeff[n] * decay(n);
+    for(let j=0;j<M;j++){
+      let y = coeff[0] / 2;
+      for(let n=1;n<=state.N;n++) y += liveCoeff[n] * cosTable[n][j];
+      current[j] = y;
+    }
+  }else{
+    liveCoeff[0] = 0;
+    for(let n=1;n<=state.N;n++) liveCoeff[n] = coeff[n] * decay(n);
+    for(let j=0;j<M;j++){
+      let y = 0;
+      for(let n=1;n<=state.N;n++) y += liveCoeff[n] * sinTable[n][j];
+      current[j] = y;
+    }
+  }
+}
+function loadPreset(id){
+  const p = presets.find(item => item.id === id);
+  if(!p) return;
+  if(id !== "draw") p.fill(shape);
+  enforceBoundary(shape);
+  state.t = 0;
+  $("timeSlider").value = "0";
+  computeCoefficients();
+  drawAll();
+}
+
+function setupCanvas(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(320, Math.round(rect.width * dpr));
+  const h = Math.max(58, Math.round(rect.height * dpr));
+  if(canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx, w: w / dpr, h: h / dpr};
+}
+function drawGrid(ctx,w,h,yMap){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = "#eef0f6";
+  for(let i=0;i<=4;i++){
+    const y = 18 + i * (h - 42) / 4;
+    ctx.beginPath(); ctx.moveTo(42,y); ctx.lineTo(w-18,y); ctx.stroke();
+  }
+  ctx.strokeStyle = "#d9dde8";
+  ctx.beginPath(); ctx.moveTo(42,yMap(0)); ctx.lineTo(w-18,yMap(0)); ctx.stroke();
+  ctx.strokeStyle = "#cbd0dd";
+  ctx.beginPath(); ctx.moveTo(42,18); ctx.lineTo(42,h-24); ctx.lineTo(w-18,h-24); ctx.stroke();
+}
+function pathLine(ctx, arr, xMap, yMap){
+  ctx.beginPath();
+  for(let j=0;j<M;j++){
+    const x = xMap(j / (M - 1)), y = yMap(arr[j]);
+    if(j === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+}
+function drawHeat(){
+  computeCurrent();
+  const canvas = $("heatCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  const xMap = x => 42 + x * (w - 60);
+  const yMin = -0.18, yMax = 1.18;
+  const yMap = y => 18 + (yMax - y) / (yMax - yMin) * (h - 42);
+  drawGrid(ctx,w,h,yMap);
+
+  if(state.boundary === "insulated"){
+    const avg = coeff[0] / 2;
+    ctx.save();
+    ctx.setLineDash([6,5]);
+    ctx.strokeStyle = "#059669";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(xMap(0), yMap(avg)); ctx.lineTo(xMap(1), yMap(avg)); ctx.stroke();
+    ctx.restore();
+  }else{
+    ctx.save();
+    ctx.setLineDash([6,5]);
+    ctx.strokeStyle = "#059669";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(xMap(0), yMap(0)); ctx.lineTo(xMap(1), yMap(0)); ctx.stroke();
+    ctx.restore();
+  }
+
+  if(state.showInitial){
+    ctx.save();
+    ctx.setLineDash([7,6]);
+    ctx.strokeStyle = "#9ca3af";
+    ctx.lineWidth = 2;
+    pathLine(ctx, shape, xMap, yMap);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  for(let j=0;j<M;j++){
+    const x = xMap(j / (M - 1)), y = yMap(current[j]);
+    if(j === 0) ctx.moveTo(x, yMap(0)); 
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(xMap(1), yMap(0));
+  ctx.closePath();
+  ctx.fillStyle = "rgba(234,88,12,.12)";
+  ctx.fill();
+
+  ctx.strokeStyle = "#ea580c";
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  pathLine(ctx, current, xMap, yMap);
+  ctx.stroke();
+
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("temperature", 48, 17);
+  ctx.fillText("x = 0", xMap(0)-14, h-8);
+  ctx.fillText("x = L", xMap(1)-20, h-8);
+}
+function tempColor(v){
+  const q = Math.max(0, Math.min(1, v));
+  const h = 220 - 210 * q;
+  const l = 48 + 10 * q;
+  return `hsl(${h} 86% ${l}%)`;
+}
+function drawRod(){
+  const canvas = $("rodCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  const left = 14, top = 12, height = h - 24, width = w - 28;
+  for(let i=0;i<width;i++){
+    const idx = Math.round(i / Math.max(1,width - 1) * (M - 1));
+    ctx.fillStyle = tempColor(current[idx]);
+    ctx.fillRect(left + i, top, 1.5, height);
+  }
+  ctx.strokeStyle = "#d1d5db";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(left, top, width, height);
+}
+function drawSpectrum(){
+  const canvas = $("spectrumCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  const left = 34, right = 14, top = 18, bottom = 28;
+  const base = top + (h - top - bottom) / 2;
+  let max = 0;
+  for(let n=0;n<=state.N;n++){
+    const c0 = state.boundary === "insulated" && n === 0 ? coeff[0] / 2 : coeff[n];
+    max = Math.max(max, Math.abs(c0), Math.abs(liveCoeff[n] || 0));
+  }
+  max = Math.max(max, 1e-6);
+  const count = state.boundary === "insulated" ? state.N + 1 : state.N;
+  const start = state.boundary === "insulated" ? 0 : 1;
+  const bw = (w - left - right) / count;
+  const highlighted = new Set(rankedModes.slice(0, state.importantCount));
+  ctx.strokeStyle = "#d9dde8";
+  ctx.beginPath(); ctx.moveTo(left,base); ctx.lineTo(w-right,base); ctx.stroke();
+  let k = 0;
+  for(let n=start;n<=state.N;n++,k++){
+    const initial = state.boundary === "insulated" && n === 0 ? coeff[0] / 2 : coeff[n];
+    const live = liveCoeff[n] || 0;
+    const x = left + k * bw + 1;
+    const h0 = Math.abs(initial) / max * (h - top - bottom) * .46;
+    const h1 = Math.abs(live) / max * (h - top - bottom) * .46;
+    ctx.fillStyle = highlighted.has(n) ? "#fed7aa" : "#c4b5fd";
+    ctx.fillRect(x, initial >= 0 ? base - h0 : base, Math.max(1,bw-2), h0);
+    ctx.fillStyle = highlighted.has(n) ? "#ea580c" : "#7c3aed";
+    ctx.fillRect(x + Math.max(1,bw*.24), live >= 0 ? base - h1 : base, Math.max(1,bw*.52), h1);
+  }
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText(state.boundary === "insulated" ? "a_n" : "b_n", 8, 16);
+  ctx.fillText("n", w - 24, h - 8);
+}
+function drawComponents(){
+  const canvas = $("componentsCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  const modes = rankedModes.slice(0, state.importantCount);
+  const top = 18, left = 58, right = 16, bottom = 18;
+  const rowH = (h - top - bottom) / Math.max(1, modes.length);
+  const xMap = x => left + x * (w - left - right);
+  let max = 0;
+  modes.forEach(n => max = Math.max(max, Math.abs(coeff[n])));
+  max = Math.max(max, 1e-6);
+  modes.forEach((n, row) => {
+    const mid = top + row * rowH + rowH / 2;
+    const ampScale = rowH * .36 / max;
+    const d = decay(n);
+    const basis = state.boundary === "insulated" ? cosTable[n] : sinTable[n];
+    ctx.strokeStyle = "#eef0f6";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(left, mid); ctx.lineTo(w - right, mid); ctx.stroke();
+    for(let j=0;j<M;j++) componentLine[j] = coeff[n] * d * basis[j];
+    ctx.strokeStyle = d > .65 ? "#059669" : d > .2 ? "#f59e0b" : "#dc2626";
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for(let j=0;j<M;j++){
+      const x = xMap(j / (M - 1));
+      const y = mid - componentLine[j] * ampScale;
+      if(j === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#374151";
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.fillText("n="+n, 12, mid - 5);
+    ctx.fillStyle = "#6b7280";
+    ctx.fillText("d="+d.toFixed(2), 12, mid + 11);
+  });
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("largest non-constant modes after multiplying by e^(-κ(nπ/L)^2t)", left, 14);
+}
+function variation(){
+  let min = Infinity, max = -Infinity;
+  for(const v of current){ min = Math.min(min, v); max = Math.max(max, v); }
+  return max - min;
+}
+function drawAll(){
+  computeCurrent();
+  drawHeat();
+  drawRod();
+  drawSpectrum();
+  drawComponents();
+  $("timeVal").textContent = state.t.toFixed(2);
+  $("timeSlider").value = state.t.toFixed(3);
+  $("finalVal").textContent = (state.boundary === "insulated" ? coeff[0] / 2 : 0).toFixed(3);
+  $("variationVal").textContent = variation().toFixed(3);
+}
+
+function pointerToSample(e){
+  const canvas = $("heatCanvas");
+  const r = canvas.getBoundingClientRect();
+  const yMin = -0.18, yMax = 1.18;
+  const x = Math.max(0, Math.min(1, (e.clientX - r.left - 42) / Math.max(1, r.width - 60)));
+  const y = Math.max(0, Math.min(1, yMax - ((e.clientY - r.top - 18) / Math.max(1, r.height - 42)) * (yMax - yMin)));
+  return {i: Math.round(x * (M - 1)), y};
+}
+function drawBetween(a,b){
+  const i0 = Math.min(a.i,b.i), i1 = Math.max(a.i,b.i);
+  for(let i=i0;i<=i1;i++){
+    const q = i1 === i0 ? 0 : (i - i0) / (i1 - i0);
+    const y = a.i <= b.i ? a.y + q * (b.y - a.y) : b.y + q * (a.y - b.y);
+    shape[i] = y;
+  }
+  enforceBoundary(shape);
+}
+function beginDraw(e){
+  if(!state.draw) return;
+  stop();
+  state.dragging = true;
+  const p = pointerToSample(e);
+  state.lastDraw = p;
+  shape[p.i] = p.y;
+  enforceBoundary(shape);
+  state.t = 0;
+  computeCoefficients();
+  drawAll();
+  e.preventDefault();
+}
+function moveDraw(e){
+  if(!state.dragging || !state.draw) return;
+  const p = pointerToSample(e);
+  drawBetween(state.lastDraw, p);
+  state.lastDraw = p;
+  state.t = 0;
+  computeCoefficients();
+  drawAll();
+  e.preventDefault();
+}
+function endDraw(){
+  state.dragging = false;
+  state.lastDraw = null;
+}
+
+function tick(ts){
+  if(!state.lastFrame) state.lastFrame = ts;
+  const dt = (ts - state.lastFrame) / 1000;
+  state.lastFrame = ts;
+  state.t += dt * state.animSpeed;
+  if(state.t >= 3) state.t = 0;
+  drawAll();
+  state.raf = requestAnimationFrame(tick);
+}
+function play(){
+  if(state.raf) return;
+  state.lastFrame = 0;
+  $("playBtn").disabled = true;
+  $("pauseBtn").disabled = false;
+  state.raf = requestAnimationFrame(tick);
+}
+function stop(){
+  if(state.raf) cancelAnimationFrame(state.raf);
+  state.raf = null;
+  $("playBtn").disabled = false;
+  $("pauseBtn").disabled = true;
+}
+function reset(){
+  stop();
+  state.t = 0;
+  drawAll();
+}
+function updateEquation(){
+  if(state.boundary === "insulated"){
+    $("equationBox").innerHTML = "<b>Insulated rod:</b> u<sub>N</sub>(x,t)=a<sub>0</sub>/2+Σ<sub>n=1</sub><sup>N</sup>a<sub>n</sub>e<sup>-κ(nπ/L)²t</sup>cos(nπx/L). The constant mode is the conserved average.";
+  }else{
+    $("equationBox").innerHTML = "<b>Cold-end rod:</b> u<sub>N</sub>(x,t)=Σ<sub>n=1</sub><sup>N</sup>b<sub>n</sub>e<sup>-κ(nπ/L)²t</sup>sin(nπx/L). Every mode decays, so the rod approaches zero temperature.";
+  }
+}
+
+function init(){
+  const select = $("presetSelect");
+  presets.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p.id; o.textContent = p.label; select.appendChild(o);
+  });
+  select.value = "left";
+  select.addEventListener("change", e => {
+    if(e.target.value === "draw") $("drawToggle").checked = state.draw = true;
+    loadPreset(e.target.value);
+    $("heatWrap").classList.toggle("draw-on", state.draw);
+  });
+  $("boundarySelect").addEventListener("change", e => {
+    state.boundary = e.target.value;
+    enforceBoundary(shape);
+    state.t = 0;
+    computeCoefficients();
+    updateEquation();
+    drawAll();
+  });
+  $("kappaSlider").addEventListener("input", e => {
+    state.kappa = parseFloat(e.target.value);
+    $("kappaVal").textContent = state.kappa.toFixed(2);
+    drawAll();
+  });
+  $("modesSlider").addEventListener("input", e => {
+    state.N = parseInt(e.target.value, 10);
+    $("modesVal").textContent = state.N;
+    rankedModes = Array.from({length: state.N}, (_, i) => i + 1)
+      .sort((a,b) => Math.abs(coeff[b]) - Math.abs(coeff[a]));
+    drawAll();
+  });
+  $("importantSlider").addEventListener("input", e => {
+    state.importantCount = parseInt(e.target.value, 10);
+    $("importantVal").textContent = state.importantCount;
+    drawAll();
+  });
+  $("animSpeedSlider").addEventListener("input", e => {
+    state.animSpeed = parseFloat(e.target.value);
+    $("animSpeedVal").textContent = state.animSpeed.toFixed(2) + "×";
+  });
+  $("timeSlider").addEventListener("input", e => {
+    stop();
+    state.t = parseFloat(e.target.value);
+    drawAll();
+  });
+  $("drawToggle").addEventListener("change", e => {
+    state.draw = e.target.checked;
+    $("heatWrap").classList.toggle("draw-on", state.draw);
+    if(state.draw) $("presetSelect").value = "draw";
+  });
+  $("initialToggle").addEventListener("change", e => { state.showInitial = e.target.checked; drawAll(); });
+  $("playBtn").addEventListener("click", play);
+  $("pauseBtn").addEventListener("click", stop);
+  $("resetBtn").addEventListener("click", reset);
+  const canvas = $("heatCanvas");
+  canvas.addEventListener("pointerdown", beginDraw);
+  canvas.addEventListener("pointermove", moveDraw);
+  window.addEventListener("pointerup", endDraw);
+  window.addEventListener("resize", drawAll);
+  updateEquation();
+  loadPreset("left");
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

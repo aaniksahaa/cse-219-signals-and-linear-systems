@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fourier Series: 1D Epicycles · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+    --accent:#4f46e5; --circle:#a5b4fc; --vector:#2563eb; --wave:#dc2626; --target:#9ca3af; --spectrum:#7c3aed;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1160px;margin:0 auto;padding:28px 20px 80px}
+  header.app{margin-bottom:22px}
+  .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  .title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:820px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:12px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:14px}
+  .grid2 > *,.grid3 > *{min-width:0}
+  .control{display:grid;grid-template-columns:150px 1fr 70px;align-items:center;gap:10px;margin:10px 0}
+  .control label{font-size:13px;font-weight:700;color:#4b5563}
+  .control input[type=range]{width:100%;accent-color:var(--accent)}
+  .control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+  select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:#cdd2e0;background:#fafbff}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--accent)}
+  .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%;touch-action:none}
+  #mainCanvas{height:560px}
+  #drawCanvas{height:190px}
+  #spectrumCanvas{height:190px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 2px 0;font-size:13px;color:#374151}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:18px;height:4px;border-radius:2px;display:inline-block}
+  .swatch.dashed{height:0;border-top:3px dashed}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .hint{font-size:13px;color:var(--muted);margin:12px 2px 0}
+  .draw-on{box-shadow:0 0 0 3px rgba(79,70,229,.16)}
+  .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+  @media(max-width:860px){
+    .grid2,.grid3{grid-template-columns:1fr}
+    .control{grid-template-columns:1fr;gap:6px}
+    .control input[type=range]{min-width:0}
+    .control .val{text-align:left}
+    #mainCanvas{height:620px}
+  }
+</style>
+</head>
+<body>
+<div class="site">
+  <aside class="sidebar" id="siteSidebar"></aside>
+
+  <main class="content">
+  <div class="wrap">
+    <header class="app">
+      <div class="title">
+        <h1>🌀 Fourier Series: Building a Wave with Rotating Vectors</h1>
+        <p>Each complex Fourier coefficient becomes one rotating arrow. Add the arrows tip-to-tail, and their endpoint reconstructs the periodic signal.</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Signal and epicycle controls</h2>
+      <div class="grid3">
+        <div>
+          <label class="toggle" style="display:block;margin-bottom:8px">Signal type</label>
+          <select id="signalSelect">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="triangle">Triangle</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="pulse">Pulse train</option>
+            <option value="custom">Custom drawn</option>
+          </select>
+          <p class="hint">Period is normalized to T = 1.</p>
+        </div>
+        <div>
+          <div class="control">
+            <label for="harmonicsSlider">Harmonics K</label>
+            <input id="harmonicsSlider" type="range" min="1" max="60" step="1" value="15" />
+            <span class="val" id="harmonicsVal">15</span>
+          </div>
+          <div class="control">
+            <label for="speedSlider">Animation speed</label>
+            <input id="speedSlider" type="range" min="0.05" max="1.50" step="0.05" value="0.35" />
+            <span class="val" id="speedVal">0.35×</span>
+          </div>
+        </div>
+        <div>
+          <div class="control">
+            <label for="freqSlider">Fundamental rate</label>
+            <input id="freqSlider" type="range" min="0.40" max="2.50" step="0.05" value="1.00" />
+            <span class="val" id="freqVal">1.00</span>
+          </div>
+          <div class="row">
+            <label class="toggle"><input id="circlesToggle" type="checkbox" checked /> Circles</label>
+            <label class="toggle"><input id="vectorsToggle" type="checkbox" checked /> Vectors</label>
+            <label class="toggle"><input id="traceToggle" type="checkbox" checked /> Wave</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rotating vectors and waveform</h2>
+      <div class="wave-wrap"><canvas id="mainCanvas" height="560"></canvas></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--vector)"></i> rotating coefficient vectors</span>
+        <span><i class="swatch" style="background:var(--wave)"></i> reconstructed waveform</span>
+        <span><i class="swatch dashed" style="border-color:var(--target)"></i> target waveform</span>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" id="playBtn">▶ Play</button>
+        <button class="btn danger" id="pauseBtn" disabled>⏸ Pause</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+        <span class="meta"><span>t <b id="timeVal">0.000</b></span><span>vectors <b id="vectorCountVal">31</b></span></span>
+      </div>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <h2>Custom waveform over one period</h2>
+        <div class="wave-wrap" id="drawWrap"><canvas id="drawCanvas" height="190"></canvas></div>
+        <div class="row" style="margin-top:12px">
+          <label class="toggle"><input id="drawToggle" type="checkbox" /> Draw custom</label>
+          <button class="btn" id="clearDrawBtn">Clear drawing</button>
+        </div>
+        <p class="hint">Select <b>Custom drawn</b>, turn on draw mode, and drag across the graph. The left and right edges are treated as one periodic boundary.</p>
+      </div>
+      <div class="card">
+        <h2>Coefficient magnitudes |C_k|</h2>
+        <div class="wave-wrap"><canvas id="spectrumCanvas" height="190"></canvas></div>
+        <p class="hint">Square waves reveal odd harmonics; smoother waves push high-frequency coefficients down faster.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="equation">
+        <b>What is being animated:</b>
+        x(t) ≈ Σ<sub>k=-K</sub><sup>K</sup>C<sub>k</sub>e<sup>j2πkt</sup>,
+        where C<sub>k</sub> = (1/M)Σ x<sub>m</sub>e<sup>-j2πkm/M</sup>.
+      </div>
+    </section>
+
+    <footer>Fourier epicycles · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+  </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const M = 512, MAX_K = 60;
+const samples = new Float64Array(M);
+const custom = new Float64Array(M);
+const coeff = new Map();
+let waveTrace = [];
+const state = {
+  signal: "sine",
+  K: 15,
+  speed: 0.35,
+  freq: 1,
+  t: 0,
+  clock: 0,
+  raf: null,
+  lastFrame: 0,
+  showCircles: true,
+  showVectors: true,
+  showTrace: true,
+  drawing: false,
+  dragging: false,
+  lastDraw: null
+};
+
+function fillSignal(){
+  for(let m=0;m<M;m++){
+    const u = m / M;
+    let y = 0;
+    if(state.signal === "sine") y = Math.sin(2 * Math.PI * u);
+    else if(state.signal === "square") y = u < 0.5 ? 1 : -1;
+    else if(state.signal === "triangle") y = 1 - 4 * Math.abs(u - 0.5);
+    else if(state.signal === "sawtooth") y = 2 * u - 1;
+    else if(state.signal === "pulse") y = u < 0.18 ? 1 : -0.35;
+    else y = custom[m];
+    samples[m] = y;
+  }
+}
+function computeCoefficients(){
+  coeff.clear();
+  for(let k=-MAX_K;k<=MAX_K;k++){
+    let re = 0, im = 0;
+    for(let m=0;m<M;m++){
+      const a = -2 * Math.PI * k * m / M;
+      re += samples[m] * Math.cos(a);
+      im += samples[m] * Math.sin(a);
+    }
+    re /= M; im /= M;
+    coeff.set(k, {k, re, im, mag: Math.hypot(re,im), phase: Math.atan2(im,re)});
+  }
+}
+function orderedTerms(){
+  const out = [coeff.get(0)];
+  for(let k=1;k<=state.K;k++){ out.push(coeff.get(k), coeff.get(-k)); }
+  return out.filter(Boolean);
+}
+function termValue(term,t){
+  const a = term.phase + 2 * Math.PI * term.k * t;
+  return {re: term.mag * Math.cos(a), im: term.mag * Math.sin(a)};
+}
+function reconstruct(u){
+  let re = 0, im = 0;
+  for(const term of orderedTerms()){
+    const v = termValue(term,u);
+    re += v.re; im += v.im;
+  }
+  return {re, im};
+}
+function resetWaveTrace(){
+  waveTrace = [{time: state.clock, value: reconstruct(state.t).re}];
+}
+
+function setupCanvas(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(320, Math.round(rect.width * dpr));
+  const h = Math.max(120, Math.round(rect.height * dpr));
+  if(canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx, w: w / dpr, h: h / dpr};
+}
+function drawGrid(ctx,x,y,w,h,yMap){
+  ctx.strokeStyle = "#eef0f6";
+  ctx.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const yy = y + i * h / 4;
+    ctx.beginPath(); ctx.moveTo(x,yy); ctx.lineTo(x+w,yy); ctx.stroke();
+  }
+  ctx.strokeStyle = "#d9dde8";
+  ctx.beginPath(); ctx.moveTo(x,yMap(0)); ctx.lineTo(x+w,yMap(0)); ctx.stroke();
+  ctx.strokeStyle = "#cbd0dd";
+  ctx.strokeRect(x,y,w,h);
+}
+function drawMain(){
+  const canvas = $("mainCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  const mobile = w < 760;
+  const left = mobile ? {x:18,y:18,w:w-36,h:h*.45} : {x:26,y:24,w:w*.43,h:h-52};
+  const right = mobile ? {x:18,y:h*.53,w:w-36,h:h*.40} : {x:w*.51,y:24,w:w*.46-20,h:h-52};
+  const center = {x:left.x + left.w/2, y:left.y + left.h/2};
+  let magSum = 0;
+  for(const term of orderedTerms()) magSum += term.mag;
+  const scale = Math.min(
+    right.h / 2.5,
+    Math.min(left.w,left.h) * .66 / Math.max(.70, magSum)
+  );
+  const plotCenterY = mobile ? right.y + right.h / 2 : center.y;
+  const plot = {x:right.x, y:plotCenterY - 1.25 * scale, w:right.w, h:2.5 * scale};
+
+  let p = {x:center.x, y:center.y};
+  for(const term of orderedTerms()){
+    const v = termValue(term,state.t);
+    const next = {x:p.x + v.im * scale, y:p.y - v.re * scale};
+    if(state.showCircles && term.mag > 1e-5){
+      ctx.strokeStyle = "rgba(17,24,39,.32)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(p.x,p.y,term.mag*scale,0,Math.PI*2); ctx.stroke();
+    }
+    if(state.showVectors){
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(next.x,next.y); ctx.stroke();
+      ctx.fillStyle = "#2563eb";
+      ctx.beginPath(); ctx.arc(next.x,next.y,2.4,0,Math.PI*2); ctx.fill();
+    }
+    p = next;
+  }
+
+  const yMap = v => plotCenterY - v * scale;
+  drawGrid(ctx,plot.x,plot.y,plot.w,plot.h,yMap);
+
+  const visiblePeriods = 2.75;
+  const drawScrolling = (fn, color, dashed, width) => {
+    ctx.save();
+    if(dashed) ctx.setLineDash([7,6]);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    let started = false;
+    const steps = Math.max(240, Math.round(plot.w));
+    for(let i=0;i<=steps;i++){
+      const age = i / steps * visiblePeriods;
+      const phase = ((state.clock - age) % 1 + 1) % 1;
+      const x = plot.x + age / visiblePeriods * plot.w;
+      const y = yMap(fn(phase, age));
+      if(!started){ ctx.moveTo(x,y); started = true; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  };
+  drawScrolling((phase) => samples[Math.min(M-1, Math.floor(phase * M))], "#9ca3af", true, 2);
+
+  if(state.showTrace && waveTrace.length > 1){
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    let started = false;
+    for(const pt of waveTrace){
+      const age = state.clock - pt.time;
+      if(age < 0 || age > visiblePeriods) continue;
+      const x = plot.x + age / visiblePeriods * plot.w;
+      const y = yMap(pt.value);
+      if(!started){ ctx.moveTo(x,y); started = true; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  const now = reconstruct(state.t).re;
+  const waveX = plot.x;
+  const waveY = yMap(now);
+  ctx.strokeStyle = "rgba(17,24,39,.42)";
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(waveX,plot.y); ctx.lineTo(waveX,plot.y+plot.h); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = "#6b7280";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(waveX,waveY); ctx.stroke();
+  ctx.fillStyle = "#111827";
+  ctx.beginPath(); ctx.arc(waveX,waveY,4.5,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("epicycle chain", left.x, left.y + 14);
+}
+function drawDrawCanvas(){
+  const canvas = $("drawCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  const pad = {x:34,y:16,w:w-48,h:h-42};
+  const yMap = v => pad.y + (1.25 - v) / 2.5 * pad.h;
+  drawGrid(ctx,pad.x,pad.y,pad.w,pad.h,yMap);
+  ctx.strokeStyle = state.signal === "custom" ? "#dc2626" : "#9ca3af";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for(let m=0;m<M;m++){
+    const x = pad.x + m / (M-1) * pad.w;
+    const y = yMap(custom[m]);
+    if(m===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("t = 0", pad.x, h-8);
+  ctx.fillText("t = T", pad.x + pad.w - 26, h-8);
+}
+function drawSpectrum(){
+  const canvas = $("spectrumCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  const left=34,right=14,top=18,bottom=28;
+  let max = 0;
+  for(let k=-state.K;k<=state.K;k++) max = Math.max(max, coeff.get(k).mag);
+  max = Math.max(max,1e-9);
+  const count = 2*state.K+1;
+  const bw = (w-left-right)/count;
+  for(let i=0,k=-state.K;k<=state.K;k++,i++){
+    const x = left + i*bw + 1;
+    const bh = coeff.get(k).mag / max * (h-top-bottom);
+    ctx.fillStyle = k===0 ? "#111827" : "#7c3aed";
+    ctx.globalAlpha = k===0 ? .85 : .72;
+    ctx.fillRect(x, h-bottom-bh, Math.max(1,bw-2), bh);
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "#d9dde8";
+  ctx.beginPath(); ctx.moveTo(left,h-bottom); ctx.lineTo(w-right,h-bottom); ctx.stroke();
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("|C_k|", 8, 16);
+  ctx.fillText("-K", left, h-8);
+  ctx.fillText("0", left + state.K*bw - 2, h-8);
+  ctx.fillText("K", w-right-12, h-8);
+}
+function drawAll(){
+  drawMain();
+  drawDrawCanvas();
+  drawSpectrum();
+  $("timeVal").textContent = state.t.toFixed(3);
+  $("vectorCountVal").textContent = 2 * state.K + 1;
+}
+
+function canvasToDraw(e){
+  const canvas = $("drawCanvas");
+  const r = canvas.getBoundingClientRect();
+  const x0 = 34, w = Math.max(1, r.width - 48), y0 = 16, h = Math.max(1, r.height - 42);
+  const u = Math.max(0, Math.min(1, (e.clientX - r.left - x0) / w));
+  const y = Math.max(-1.2, Math.min(1.2, 1.25 - ((e.clientY - r.top - y0) / h) * 2.5));
+  return {i: Math.round(u * (M - 1)), y};
+}
+function drawBetween(a,b){
+  const i0 = Math.min(a.i,b.i), i1 = Math.max(a.i,b.i);
+  for(let i=i0;i<=i1;i++){
+    const q = i1 === i0 ? 0 : (i - i0) / (i1 - i0);
+    custom[i] = a.i <= b.i ? a.y + q * (b.y - a.y) : b.y + q * (a.y - b.y);
+  }
+}
+function beginDraw(e){
+  if(!state.drawing) return;
+  state.signal = "custom";
+  $("signalSelect").value = "custom";
+  stop();
+  state.dragging = true;
+  state.lastDraw = canvasToDraw(e);
+  custom[state.lastDraw.i] = state.lastDraw.y;
+  fillSignal(); computeCoefficients(); drawAll();
+  e.preventDefault();
+}
+function moveDraw(e){
+  if(!state.dragging || !state.drawing) return;
+  const p = canvasToDraw(e);
+  drawBetween(state.lastDraw, p);
+  state.lastDraw = p;
+  fillSignal(); computeCoefficients(); drawAll();
+  e.preventDefault();
+}
+function endDraw(){ state.dragging = false; state.lastDraw = null; }
+
+function tick(ts){
+  if(!state.lastFrame) state.lastFrame = ts;
+  const dt = (ts - state.lastFrame) / 1000;
+  state.lastFrame = ts;
+  const advance = dt * state.speed * state.freq;
+  state.clock += advance;
+  state.t = ((state.clock % 1) + 1) % 1;
+  waveTrace.push({time: state.clock, value: reconstruct(state.t).re});
+  const oldest = state.clock - 2.8;
+  while(waveTrace.length > 2 && waveTrace[0].time < oldest) waveTrace.shift();
+  drawAll();
+  state.raf = requestAnimationFrame(tick);
+}
+function play(){
+  if(state.raf) return;
+  state.lastFrame = 0;
+  $("playBtn").disabled = true;
+  $("pauseBtn").disabled = false;
+  state.raf = requestAnimationFrame(tick);
+}
+function stop(){
+  if(state.raf) cancelAnimationFrame(state.raf);
+  state.raf = null;
+  $("playBtn").disabled = false;
+  $("pauseBtn").disabled = true;
+}
+function reset(){
+  stop();
+  state.t = 0;
+  state.clock = 0;
+  resetWaveTrace();
+  drawAll();
+}
+function rebuild(){
+  fillSignal();
+  computeCoefficients();
+  resetWaveTrace();
+  drawAll();
+}
+function init(){
+  for(let m=0;m<M;m++) custom[m] = Math.sin(2 * Math.PI * m / M);
+  $("signalSelect").addEventListener("change", e => { state.signal = e.target.value; rebuild(); });
+  $("harmonicsSlider").addEventListener("input", e => { state.K = parseInt(e.target.value,10); $("harmonicsVal").textContent = state.K; rebuild(); });
+  $("speedSlider").addEventListener("input", e => { state.speed = parseFloat(e.target.value); $("speedVal").textContent = state.speed.toFixed(2)+"×"; });
+  $("freqSlider").addEventListener("input", e => { state.freq = parseFloat(e.target.value); $("freqVal").textContent = state.freq.toFixed(2); });
+  $("circlesToggle").addEventListener("change", e => { state.showCircles = e.target.checked; drawAll(); });
+  $("vectorsToggle").addEventListener("change", e => { state.showVectors = e.target.checked; drawAll(); });
+  $("traceToggle").addEventListener("change", e => { state.showTrace = e.target.checked; drawAll(); });
+  $("drawToggle").addEventListener("change", e => { state.drawing = e.target.checked; $("drawWrap").classList.toggle("draw-on", state.drawing); });
+  $("clearDrawBtn").addEventListener("click", () => { for(let m=0;m<M;m++) custom[m] = 0; state.signal = "custom"; $("signalSelect").value = "custom"; rebuild(); });
+  $("playBtn").addEventListener("click", play);
+  $("pauseBtn").addEventListener("click", stop);
+  $("resetBtn").addEventListener("click", reset);
+  const dc = $("drawCanvas");
+  dc.addEventListener("pointerdown", beginDraw);
+  dc.addEventListener("pointermove", moveDraw);
+  window.addEventListener("pointerup", endDraw);
+  window.addEventListener("resize", drawAll);
+  rebuild();
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

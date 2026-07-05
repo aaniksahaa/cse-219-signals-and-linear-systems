@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fourier Epicycles: 2D Drawing · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+    --accent:#4f46e5; --circle:#a5b4fc; --vector:#2563eb; --trace:#dc2626; --original:#9ca3af; --spectrum:#7c3aed;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1160px;margin:0 auto;padding:28px 20px 80px}
+  header.app{margin-bottom:22px}
+  .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  .title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:820px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:12px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:1.08fr 1fr 1fr;gap:14px}
+  .grid2 > *,.grid3 > *{min-width:0}
+  .control{display:grid;grid-template-columns:150px 1fr 70px;align-items:center;gap:10px;margin:10px 0}
+  .control label{font-size:13px;font-weight:700;color:#4b5563}
+  .control input[type=range]{width:100%;accent-color:var(--accent)}
+  .control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+  select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:#cdd2e0;background:#fafbff}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--accent)}
+  .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  canvas{display:block;width:100%;touch-action:none}
+  #mainCanvas{height:560px}
+  #drawCanvas{height:260px}
+  #spectrumCanvas{height:260px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 2px 0;font-size:13px;color:#374151}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:18px;height:4px;border-radius:2px;display:inline-block}
+  .swatch.dashed{height:0;border-top:3px dashed}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .hint{font-size:13px;color:var(--muted);margin:12px 2px 0}
+  .draw-on{box-shadow:0 0 0 3px rgba(79,70,229,.16)}
+  .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+  @media(max-width:860px){
+    .grid2,.grid3{grid-template-columns:1fr}
+    .control{grid-template-columns:1fr;gap:6px}
+    .control input[type=range]{min-width:0}
+    .control .val{text-align:left}
+    #mainCanvas{height:430px}
+  }
+</style>
+</head>
+<body>
+<div class="site">
+  <aside class="sidebar" id="siteSidebar"></aside>
+
+  <main class="content">
+  <div class="wrap">
+    <header class="app">
+      <div class="title">
+        <h1>✒️ Fourier Epicycles: Drawing with Rotating Vectors</h1>
+        <p>A closed 2D curve is a complex signal z(t)=x(t)+jy(t). Fourier coefficients become rotating arrows whose endpoint redraws the curve.</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Drawing and epicycle controls</h2>
+      <div class="grid3">
+        <div>
+          <label class="toggle" style="display:block;margin-bottom:8px">Preset shape</label>
+          <select id="presetSelect">
+            <option value="circle">Circle</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="square">Square</option>
+            <option value="heart">Heart</option>
+            <option value="star">Star</option>
+            <option value="custom">Custom draw</option>
+          </select>
+          <div style="height:10px"></div>
+          <label class="toggle" style="display:block;margin-bottom:8px">Coefficient ordering</label>
+          <select id="orderSelect">
+            <option value="magnitude">Largest first</option>
+            <option value="frequency">Frequency order</option>
+          </select>
+        </div>
+        <div>
+          <div class="control">
+            <label for="countSlider">Epicycles</label>
+            <input id="countSlider" type="range" min="1" max="160" step="1" value="80" />
+            <span class="val" id="countVal">80</span>
+          </div>
+          <div class="control">
+            <label for="speedSlider">Animation speed</label>
+            <input id="speedSlider" type="range" min="0.05" max="1.50" step="0.05" value="0.35" />
+            <span class="val" id="speedVal">0.35×</span>
+          </div>
+        </div>
+        <div>
+          <div class="row" style="margin-top:10px">
+            <label class="toggle"><input id="circlesToggle" type="checkbox" checked /> Circles</label>
+            <label class="toggle"><input id="vectorsToggle" type="checkbox" checked /> Vectors</label>
+            <label class="toggle"><input id="traceToggle" type="checkbox" checked /> Trace</label>
+            <label class="toggle"><input id="originalToggle" type="checkbox" checked /> Original</label>
+            <label class="toggle"><input id="closeToggle" type="checkbox" checked /> Close curve</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Epicycle drawing</h2>
+      <div class="wave-wrap"><canvas id="mainCanvas" height="560"></canvas></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--vector)"></i> rotating vectors</span>
+        <span><i class="swatch" style="background:var(--trace)"></i> endpoint trace</span>
+        <span><i class="swatch dashed" style="border-color:var(--original)"></i> original curve</span>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" id="playBtn">▶ Play</button>
+        <button class="btn danger" id="pauseBtn" disabled>⏸ Pause</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+        <span class="meta"><span>t <b id="timeVal">0.000</b></span><span>coefficients shown <b id="shownVal">80</b></span></span>
+      </div>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <h2>Custom drawing pad</h2>
+        <div class="wave-wrap" id="drawWrap"><canvas id="drawCanvas" height="260"></canvas></div>
+        <div class="row" style="margin-top:12px">
+          <label class="toggle"><input id="drawToggle" type="checkbox" /> Draw new curve</label>
+          <button class="btn" id="clearDrawBtn">Clear</button>
+        </div>
+        <p class="hint">Drag a curve here. The path is resampled by arc length before computing coefficients, so slow mouse movement does not overweight a region.</p>
+      </div>
+      <div class="card">
+        <h2>Coefficient magnitudes |C_k|</h2>
+        <div class="wave-wrap"><canvas id="spectrumCanvas" height="260"></canvas></div>
+        <p class="hint">Changing the order changes the chain shape, but the selected vectors still add to the same endpoint.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="equation">
+        <b>What is being animated:</b>
+        z(t) ≈ Σ C<sub>k</sub>e<sup>j2πkt</sup>.
+        Here z(t)=x(t)+jy(t), so each coefficient is literally one rotating arrow in the plane.
+      </div>
+    </section>
+
+    <footer>Fourier drawing epicycles · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+  </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const M = 512, MAX_K = 120;
+let samples = [];
+let customRaw = [];
+let coeffs = [];
+let trace = [];
+const state = {
+  preset: "circle",
+  order: "magnitude",
+  count: 80,
+  speed: 0.35,
+  t: 0,
+  raf: null,
+  lastFrame: 0,
+  showCircles: true,
+  showVectors: true,
+  showTrace: true,
+  showOriginal: true,
+  closeCurve: true,
+  drawing: false,
+  dragging: false
+};
+
+function add(a,b){ return {re:a.re+b.re, im:a.im+b.im}; }
+function dist(a,b){ return Math.hypot(a.re-b.re, a.im-b.im); }
+function normalizePath(points){
+  if(points.length < 2) return makeCircle();
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  points.forEach(p => { minX=Math.min(minX,p.re); maxX=Math.max(maxX,p.re); minY=Math.min(minY,p.im); maxY=Math.max(maxY,p.im); });
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const s = Math.max(maxX-minX, maxY-minY, 1e-9);
+  return points.map(p => ({re:(p.re-cx)/s*1.8, im:(p.im-cy)/s*1.8}));
+}
+function resamplePath(points, closed=true){
+  let path = points.slice();
+  if(closed && path.length > 1) path = path.concat([{...path[0]}]);
+  if(path.length < 2) return makeCircle();
+  const cumulative = [0];
+  for(let i=1;i<path.length;i++) cumulative[i] = cumulative[i-1] + dist(path[i], path[i-1]);
+  const total = cumulative[cumulative.length - 1];
+  if(total < 1e-9) return makeCircle();
+  const out = [];
+  let seg = 1;
+  for(let m=0;m<M;m++){
+    const target = m / M * total;
+    while(seg < cumulative.length - 1 && cumulative[seg] < target) seg++;
+    const prev = path[seg-1], next = path[seg];
+    const span = Math.max(1e-9, cumulative[seg] - cumulative[seg-1]);
+    const q = (target - cumulative[seg-1]) / span;
+    out.push({re:prev.re + q * (next.re - prev.re), im:prev.im + q * (next.im - prev.im)});
+  }
+  return normalizePath(out);
+}
+function makeCircle(){
+  const out = [];
+  for(let m=0;m<M;m++){
+    const a = 2 * Math.PI * m / M;
+    out.push({re:Math.cos(a), im:Math.sin(a)});
+  }
+  return out;
+}
+function makeEllipse(){
+  const out = [];
+  for(let m=0;m<M;m++){
+    const a = 2 * Math.PI * m / M;
+    out.push({re:1.05*Math.cos(a), im:.62*Math.sin(a)});
+  }
+  return out;
+}
+function makeSquare(){
+  const pts = [{re:-1,im:-1},{re:1,im:-1},{re:1,im:1},{re:-1,im:1}];
+  return resamplePath(pts, true);
+}
+function makeHeart(){
+  const pts = [];
+  for(let m=0;m<M;m++){
+    const a = 2 * Math.PI * m / M;
+    const x = 16 * Math.pow(Math.sin(a),3);
+    const y = 13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a);
+    pts.push({re:x, im:y});
+  }
+  return normalizePath(pts);
+}
+function makeStar(){
+  const pts = [];
+  for(let i=0;i<10;i++){
+    const r = i % 2 === 0 ? 1 : .42;
+    const a = Math.PI/2 + i * Math.PI / 5;
+    pts.push({re:r*Math.cos(a), im:r*Math.sin(a)});
+  }
+  return resamplePath(pts, true);
+}
+function loadPreset(){
+  if(state.preset === "circle") samples = makeCircle();
+  else if(state.preset === "ellipse") samples = makeEllipse();
+  else if(state.preset === "square") samples = makeSquare();
+  else if(state.preset === "heart") samples = makeHeart();
+  else if(state.preset === "star") samples = makeStar();
+  else samples = resamplePath(customRaw, state.closeCurve);
+  computeCoefficients();
+  resetTrace();
+  drawAll();
+}
+function computeCoefficients(){
+  coeffs = [];
+  for(let k=-MAX_K;k<=MAX_K;k++){
+    let re = 0, im = 0;
+    for(let m=0;m<M;m++){
+      const z = samples[m];
+      const a = -2 * Math.PI * k * m / M;
+      const c = Math.cos(a), s = Math.sin(a);
+      re += z.re * c - z.im * s;
+      im += z.re * s + z.im * c;
+    }
+    re /= M; im /= M;
+    coeffs.push({k, re, im, mag:Math.hypot(re,im), phase:Math.atan2(im,re)});
+  }
+}
+function frequencyOrder(){
+  const byK = new Map(coeffs.map(c => [c.k,c]));
+  const out = [byK.get(0)];
+  for(let k=1;k<=MAX_K;k++) out.push(byK.get(k), byK.get(-k));
+  return out.filter(Boolean);
+}
+function selectedTerms(){
+  const ordered = state.order === "magnitude"
+    ? coeffs.slice().sort((a,b)=>b.mag-a.mag)
+    : frequencyOrder();
+  return ordered.slice(0, state.count);
+}
+function termVector(term,t){
+  const a = term.phase + 2 * Math.PI * term.k * t;
+  return {re:term.mag*Math.cos(a), im:term.mag*Math.sin(a)};
+}
+function endpointAt(t){
+  let p = {re:0, im:0};
+  for(const term of selectedTerms()) p = add(p, termVector(term,t));
+  return p;
+}
+function resetTrace(){ trace = []; }
+
+function setupCanvas(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(320, Math.round(rect.width * dpr));
+  const h = Math.max(160, Math.round(rect.height * dpr));
+  if(canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w:w/dpr,h:h/dpr};
+}
+function drawAxes(ctx,w,h){
+  ctx.strokeStyle = "#eef0f6";
+  ctx.lineWidth = 1;
+  const cx=w/2, cy=h/2;
+  ctx.beginPath(); ctx.moveTo(cx,18); ctx.lineTo(cx,h-18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(18,cy); ctx.lineTo(w-18,cy); ctx.stroke();
+}
+function makeMapper(w,h){
+  const scale = Math.min(w,h) * .42;
+  return p => ({x:w/2 + p.re*scale, y:h/2 - p.im*scale});
+}
+function drawMain(){
+  const canvas = $("mainCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  drawAxes(ctx,w,h);
+  const map = makeMapper(w,h);
+
+  if(state.showOriginal){
+    ctx.save();
+    ctx.setLineDash([7,6]);
+    ctx.strokeStyle = "rgba(156,163,175,.72)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    samples.forEach((p,i) => {
+      const q = map(p);
+      if(i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if(state.showTrace && trace.length > 1){
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    trace.forEach((p,i) => {
+      const q = map(p);
+      if(i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+    });
+    ctx.stroke();
+  }
+
+  let p = {re:0, im:0};
+  let pc = map(p);
+  for(const term of selectedTerms()){
+    const v = termVector(term,state.t);
+    const next = add(p,v);
+    const nc = map(next);
+    if(state.showCircles && term.mag > 1e-5){
+      ctx.strokeStyle = "rgba(165,180,252,.68)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(pc.x,pc.y,term.mag*Math.min(w,h)*.42,0,Math.PI*2); ctx.stroke();
+    }
+    if(state.showVectors){
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(pc.x,pc.y); ctx.lineTo(nc.x,nc.y); ctx.stroke();
+    }
+    p = next; pc = nc;
+  }
+  ctx.fillStyle = "#111827";
+  ctx.beginPath(); ctx.arc(pc.x,pc.y,4.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("complex plane", 18, 18);
+}
+function drawPad(){
+  const canvas = $("drawCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  drawAxes(ctx,w,h);
+  const map = makeMapper(w,h);
+  const path = state.preset === "custom" && customRaw.length > 1 ? customRaw : samples;
+  ctx.strokeStyle = state.preset === "custom" ? "#dc2626" : "#9ca3af";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  path.forEach((p,i) => {
+    const q = map(p);
+    if(i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+  });
+  if(state.closeCurve && path.length > 2) ctx.closePath();
+  ctx.stroke();
+}
+function drawSpectrum(){
+  const canvas = $("spectrumCanvas");
+  const {ctx,w,h} = setupCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,w,h);
+  const selected = new Set(selectedTerms().map(t => t.k));
+  const left=34,right=14,top=18,bottom=28;
+  const shown = coeffs.filter(c => c.k >= -MAX_K && c.k <= MAX_K);
+  const max = Math.max(1e-9, ...shown.map(c => c.mag));
+  const bw = (w-left-right)/shown.length;
+  shown.forEach((term,i) => {
+    const x = left + i*bw + 1;
+    const bh = term.mag / max * (h-top-bottom);
+    ctx.fillStyle = selected.has(term.k) ? "#dc2626" : "#7c3aed";
+    ctx.globalAlpha = selected.has(term.k) ? .9 : .42;
+    ctx.fillRect(x, h-bottom-bh, Math.max(1,bw-2), bh);
+  });
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "#d9dde8";
+  ctx.beginPath(); ctx.moveTo(left,h-bottom); ctx.lineTo(w-right,h-bottom); ctx.stroke();
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("|C_k|", 8, 16);
+  ctx.fillText("-K", left, h-8);
+  ctx.fillText("0", left + shown.length/2*bw - 2, h-8);
+  ctx.fillText("K", w-right-12, h-8);
+}
+function drawAll(){
+  drawMain();
+  drawPad();
+  drawSpectrum();
+  $("timeVal").textContent = state.t.toFixed(3);
+  $("shownVal").textContent = Math.min(state.count, coeffs.length);
+}
+
+function canvasToPoint(e){
+  const canvas = $("drawCanvas");
+  const r = canvas.getBoundingClientRect();
+  const scale = Math.min(r.width,r.height) * .42;
+  return {re:(e.clientX-r.left-r.width/2)/scale, im:-(e.clientY-r.top-r.height/2)/scale};
+}
+function beginDraw(e){
+  if(!state.drawing) return;
+  stop();
+  state.preset = "custom";
+  $("presetSelect").value = "custom";
+  state.dragging = true;
+  customRaw = [canvasToPoint(e)];
+  samples = resamplePath(customRaw, state.closeCurve);
+  computeCoefficients();
+  resetTrace();
+  drawAll();
+  e.preventDefault();
+}
+function moveDraw(e){
+  if(!state.dragging || !state.drawing) return;
+  const p = canvasToPoint(e);
+  const last = customRaw[customRaw.length - 1];
+  if(!last || dist(last,p) > .01) customRaw.push(p);
+  samples = resamplePath(customRaw, state.closeCurve);
+  computeCoefficients();
+  resetTrace();
+  drawAll();
+  e.preventDefault();
+}
+function endDraw(){ state.dragging = false; }
+
+function tick(ts){
+  if(!state.lastFrame) state.lastFrame = ts;
+  const dt = (ts - state.lastFrame) / 1000;
+  state.lastFrame = ts;
+  const prev = state.t;
+  state.t = (state.t + dt * state.speed) % 1;
+  if(state.t < prev) resetTrace();
+  trace.push(endpointAt(state.t));
+  if(trace.length > 1200) trace.shift();
+  drawAll();
+  state.raf = requestAnimationFrame(tick);
+}
+function play(){
+  if(state.raf) return;
+  state.lastFrame = 0;
+  $("playBtn").disabled = true;
+  $("pauseBtn").disabled = false;
+  state.raf = requestAnimationFrame(tick);
+}
+function stop(){
+  if(state.raf) cancelAnimationFrame(state.raf);
+  state.raf = null;
+  $("playBtn").disabled = false;
+  $("pauseBtn").disabled = true;
+}
+function reset(){
+  stop();
+  state.t = 0;
+  resetTrace();
+  drawAll();
+}
+function init(){
+  customRaw = makeStar().filter((_,i)=>i%32===0);
+  $("presetSelect").addEventListener("change", e => { state.preset = e.target.value; loadPreset(); });
+  $("orderSelect").addEventListener("change", e => { state.order = e.target.value; resetTrace(); drawAll(); });
+  $("countSlider").addEventListener("input", e => { state.count = parseInt(e.target.value,10); $("countVal").textContent = state.count; resetTrace(); drawAll(); });
+  $("speedSlider").addEventListener("input", e => { state.speed = parseFloat(e.target.value); $("speedVal").textContent = state.speed.toFixed(2)+"×"; });
+  $("circlesToggle").addEventListener("change", e => { state.showCircles = e.target.checked; drawAll(); });
+  $("vectorsToggle").addEventListener("change", e => { state.showVectors = e.target.checked; drawAll(); });
+  $("traceToggle").addEventListener("change", e => { state.showTrace = e.target.checked; drawAll(); });
+  $("originalToggle").addEventListener("change", e => { state.showOriginal = e.target.checked; drawAll(); });
+  $("closeToggle").addEventListener("change", e => { state.closeCurve = e.target.checked; if(state.preset==="custom") loadPreset(); });
+  $("drawToggle").addEventListener("change", e => { state.drawing = e.target.checked; $("drawWrap").classList.toggle("draw-on", state.drawing); });
+  $("clearDrawBtn").addEventListener("click", () => { customRaw = []; state.preset = "custom"; $("presetSelect").value = "custom"; loadPreset(); });
+  $("playBtn").addEventListener("click", play);
+  $("pauseBtn").addEventListener("click", stop);
+  $("resetBtn").addEventListener("click", reset);
+  const dc = $("drawCanvas");
+  dc.addEventListener("pointerdown", beginDraw);
+  dc.addEventListener("pointermove", moveDraw);
+  window.addEventListener("pointerup", endDraw);
+  window.addEventListener("resize", drawAll);
+  loadPreset();
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
