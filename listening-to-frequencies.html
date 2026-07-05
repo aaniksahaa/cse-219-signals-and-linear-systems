@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>✂️ Frequency Scissors · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<script src="assets/audio-fourier.js"></script>
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#1c2333;--muted:#6b7280;--line:#e6e8ef;--accent:#4f46e5;--input:#2563eb;--out:#059669;--shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);--radius:16px}
+  *{box-sizing:border-box} body{background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1160px;margin:0 auto;padding:28px 20px 80px}
+  header.app{margin-bottom:22px}.title h1{font-size:26px;margin:0;letter-spacing:-.02em}.title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:820px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:12px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:14px}.grid2>* ,.grid3>*{min-width:0}
+  .control{display:grid;grid-template-columns:140px 1fr 74px;align-items:center;gap:10px;margin:10px 0}.control label{font-size:13px;font-weight:700;color:#4b5563}.control input[type=range]{width:100%;accent-color:var(--accent)}.control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+  select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.in{background:var(--input);border-color:var(--input);color:#fff}.btn.out{background:var(--out);border-color:var(--out);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}
+  .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;touch-action:none}#originalWaveCanvas,#modifiedWaveCanvas{height:145px}#spectrumCanvas,#modifiedSpectrumCanvas{height:230px}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}.toggle input{accent-color:var(--accent)}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta b{color:var(--ink);font-variant-numeric:tabular-nums}.hint{font-size:13px;color:var(--muted);margin:12px 2px 0}.hidden{display:none!important}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}.control{grid-template-columns:1fr;gap:6px}.control .val{text-align:left}}
+</style>
+</head>
+<body>
+<div class="site">
+  <aside class="sidebar" id="siteSidebar"></aside>
+  <main class="content"><div class="wrap">
+    <header class="app"><div class="title">
+      <h1>✂️ Frequency Scissors</h1>
+      <p>Fourier analysis lets us open a sound and look inside its frequencies. Cut, boost, attenuate, or isolate a band, then listen to what changed.</p>
+    </div></header>
+
+    <section class="card">
+      <h2>Audio source</h2>
+      <div class="grid2">
+        <div><div class="chips" id="sampleChips"></div><p class="hint">Generated classroom-safe sounds are used by default; uploaded audio is processed locally in your browser.</p></div>
+        <div>
+          <div class="row"><button class="btn" id="uploadBtn">📁 Upload audio</button><input class="hidden" id="fileInput" type="file" accept="audio/*" /><button class="btn" id="resetBtn">↺ Reset</button></div>
+          <div class="meta"><span>Source <b id="sourceName">—</b></span><span>Full duration <b id="durVal">—</b></span><span>Sample rate <b id="srVal">—</b></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Original sound</h2>
+      <div class="wave-wrap"><canvas id="originalWaveCanvas" height="145"></canvas></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn in" id="playOriginal">▶ Original</button>
+        <button class="btn" id="stopBtn">⏹ Stop</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Spectrum with scissors</h2>
+      <div class="wave-wrap"><canvas id="spectrumCanvas" height="230"></canvas></div>
+      <p class="hint">Drag the red scissor markers on the spectrum, or use the frequency sliders below. For long audio, choose the time segment to analyze and edit.</p>
+      <div class="grid3" style="margin-top:10px">
+        <div>
+          <label class="toggle" style="display:block;margin-bottom:8px">Operation</label>
+          <select id="operationSelect">
+            <option value="cut">Cut selected band</option>
+            <option value="attenuate">Attenuate selected band</option>
+            <option value="amplify">Amplify selected band</option>
+            <option value="isolate">Isolate selected band</option>
+          </select>
+          <div class="row" style="margin-top:12px"><label class="toggle"><input type="checkbox" id="invertToggle" /> Apply outside band</label></div>
+        </div>
+        <div>
+          <div class="control"><label for="lowSlider">Low frequency</label><input id="lowSlider" type="range" min="20" max="12000" step="10" value="300" /><span class="val" id="lowVal">300 Hz</span></div>
+          <div class="control"><label for="highSlider">High frequency</label><input id="highSlider" type="range" min="20" max="12000" step="10" value="3000" /><span class="val" id="highVal">3000 Hz</span></div>
+        </div>
+        <div>
+          <div class="control"><label for="gainSlider">Gain</label><input id="gainSlider" type="range" min="0.05" max="4" step="0.05" value="0.25" /><span class="val" id="gainVal">0.25×</span></div>
+          <div class="control"><label for="softSlider">Edge softness</label><input id="softSlider" type="range" min="0" max="1000" step="10" value="120" /><span class="val" id="softVal">120 Hz</span></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="control"><label for="startSlider">Segment start</label><input id="startSlider" type="range" min="0" max="1" step="0.01" value="0" /><span class="val" id="startVal">0.00 s</span></div>
+        <div class="control"><label for="endSlider">Segment end</label><input id="endSlider" type="range" min="0" max="1" step="0.01" value="1" /><span class="val" id="endVal">1.00 s</span></div>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="fullSegmentBtn">Use full file</button></div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="applyBtn">Apply frequency edit</button><span class="meta"><span>Band <b id="bandVal">300–3000 Hz</b></span><span>Segment <b id="segmentVal">0.00–1.00 s</b></span></span></div>
+    </section>
+
+    <section class="card">
+      <h2>Modified sound</h2>
+      <div class="grid2">
+        <div>
+          <div class="wave-wrap"><canvas id="modifiedWaveCanvas" height="145"></canvas></div>
+        </div>
+        <div>
+          <div class="wave-wrap"><canvas id="modifiedSpectrumCanvas" height="230"></canvas></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn out" id="playModified" disabled>▶ Modified full audio</button>
+        <span class="meta"><span>Status <b id="modifiedStatus">Apply an edit first</b></span></span>
+      </div>
+    </section>
+
+    <footer>Frequency-domain audio editing · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+  </div></main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const DSP = window.CSE219AudioFourier;
+const samples = [
+  {id:"voice", label:"Voice-like"},
+  {id:"pluck", label:"Plucked tone"},
+  {id:"chord", label:"Chord"},
+  {id:"drum", label:"Drum hit"}
+];
+let source = null, processed = null, draggingMarker = null;
+
+function cfg(){
+  return {
+    operation:$("operationSelect").value,
+    low:+$("lowSlider").value,
+    high:+$("highSlider").value,
+    gain:+$("gainSlider").value,
+    softness:+$("softSlider").value,
+    invert:$("invertToggle").checked,
+    fftSize:2048,
+    hop:512
+  };
+}
+function fmtHz(v){ return v >= 1000 ? (v/1000).toFixed(v>=10000?1:2)+" kHz" : Math.round(v)+" Hz"; }
+function syncLabels(){
+  let lo=+$("lowSlider").value, hi=+$("highSlider").value;
+  if(lo>hi){ [lo,hi]=[hi,lo]; }
+  $("lowVal").textContent=fmtHz(+$("lowSlider").value);
+  $("highVal").textContent=fmtHz(+$("highSlider").value);
+  $("gainVal").textContent=(+$("gainSlider").value).toFixed(2)+"×";
+  $("softVal").textContent=fmtHz(+$("softSlider").value);
+  $("bandVal").textContent=fmtHz(lo)+"–"+fmtHz(hi);
+  if(source){
+    const s = segmentBounds();
+    $("startSlider").value = s.start.toFixed(3);
+    $("endSlider").value = s.end.toFixed(3);
+    $("startVal").textContent = s.start.toFixed(2)+" s";
+    $("endVal").textContent = s.end.toFixed(2)+" s";
+    $("segmentVal").textContent = s.start.toFixed(2)+"–"+s.end.toFixed(2)+" s";
+  }
+}
+function fullDuration(){ return source ? source.data.length / source.sr : 0; }
+function segmentBounds(){
+  const dur = fullDuration();
+  let start = DSP.clamp(+$("startSlider").value || 0, 0, dur);
+  let end = DSP.clamp(+$("endSlider").value || dur, 0, dur);
+  if(start > Math.max(0, dur - 0.05)) start = Math.max(0, dur - 0.05);
+  if(end < start + 0.05) end = Math.min(dur, start + 0.05);
+  const a = Math.floor(start * source.sr);
+  const b = Math.max(a + 1, Math.min(source.data.length, Math.floor(end * source.sr)));
+  return {start:a / source.sr, end:b / source.sr, a, b};
+}
+function selectedSegment(){
+  const s = segmentBounds();
+  return source.data.slice(s.a, s.b);
+}
+function resetSegmentControls(){
+  if(!source) return;
+  const dur = fullDuration();
+  const step = Math.max(0.01, dur / 2000);
+  const end = Math.min(dur, Math.max(1, Math.min(30, dur)));
+  ["startSlider","endSlider"].forEach(id=>{
+    $(id).max = dur.toFixed(3);
+    $(id).step = step.toFixed(3);
+  });
+  $("startSlider").value = "0";
+  $("endSlider").value = end.toFixed(3);
+}
+function clearAnalysis(){
+  if(source){
+    source._analysis = null;
+    source._analysisKey = "";
+  }
+}
+function drawEmptyCanvas(canvas, message){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(320, Math.round(rect.width * dpr));
+  const h = Math.max(145, Math.round(rect.height * dpr));
+  if(canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w/dpr,h/dpr);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,w/dpr,h/dpr);
+  ctx.strokeStyle = "#eef0f6";
+  ctx.beginPath(); ctx.moveTo(34,h/dpr/2); ctx.lineTo(w/dpr-12,h/dpr/2); ctx.stroke();
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "13px system-ui, sans-serif";
+  ctx.fillText(message, 34, h/dpr/2 - 12);
+}
+function drawEmptyModified(){
+  drawEmptyCanvas($("modifiedWaveCanvas"), "Apply a frequency edit to generate the modified sound.");
+  drawEmptyCanvas($("modifiedSpectrumCanvas"), "The modified spectrum will appear here.");
+}
+function render(){
+  if(!source) return;
+  syncLabels();
+  const originalAnalysis = sourceAnalysis();
+  DSP.drawWave($("originalWaveCanvas"), source.data, source.sr, "#2563eb");
+  DSP.drawSpectrum($("spectrumCanvas"), originalAnalysis.avg, source.sr, originalAnalysis.fftSize, cfg());
+  if(processed){
+    DSP.drawWave($("modifiedWaveCanvas"), processed.data, source.sr, "#059669");
+    DSP.drawSpectrum($("modifiedSpectrumCanvas"), processed.avgOut, source.sr, processed.fftSize, cfg());
+    $("playModified").disabled = false;
+    $("modifiedStatus").textContent = "Ready";
+  }else{
+    drawEmptyModified();
+    $("playModified").disabled = true;
+    $("modifiedStatus").textContent = "Apply an edit first";
+  }
+  $("sourceName").textContent = source.name;
+  $("durVal").textContent = (source.data.length/source.sr).toFixed(2)+" s";
+  $("srVal").textContent = Math.round(source.sr).toLocaleString()+" Hz";
+}
+function sourceAnalysis(){
+  const s = segmentBounds();
+  const key = `${s.a}:${s.b}`;
+  if(!source._analysis || source._analysisKey !== key){
+    source._analysis = DSP.stftProcess(selectedSegment(), source.sr, {operation:"attenuate",low:0,high:0,gain:1,softness:0,fftSize:2048,hop:512});
+    source._analysisKey = key;
+  }
+  return source._analysis;
+}
+function loadGenerated(id){
+  source = DSP.makeSample(id);
+  source.name = samples.find(s=>s.id===id).label;
+  processed = null;
+  clearAnalysis();
+  resetSegmentControls();
+  document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.id===id));
+  render();
+}
+async function loadUpload(file){
+  source = await DSP.decodeFile(file);
+  processed = null;
+  clearAnalysis();
+  resetSegmentControls();
+  document.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
+  render();
+}
+function applyEdit(){
+  if(!source) return;
+  syncLabels();
+  const s = segmentBounds();
+  const edited = DSP.stftProcess(selectedSegment(), source.sr, cfg());
+  const full = new Float32Array(source.data);
+  full.set(edited.data.subarray(0, s.b - s.a), s.a);
+  processed = {
+    data: full,
+    segmentData: edited.data,
+    avgOut: edited.avgOut,
+    spectrogram: edited.spectrogram,
+    fftSize: edited.fftSize,
+    hop: edited.hop
+  };
+  render();
+}
+function freqFromEvent(e){
+  const r=$("spectrumCanvas").getBoundingClientRect();
+  const x=Math.max(0,Math.min(1,(e.clientX-r.left-42)/Math.max(1,r.width-58)));
+  return Math.round(x*(source.sr/2)/10)*10;
+}
+function init(){
+  const box=$("sampleChips");
+  samples.forEach(s=>{const c=document.createElement("div");c.className="chip";c.dataset.id=s.id;c.textContent=s.label;c.addEventListener("click",()=>loadGenerated(s.id));box.appendChild(c);});
+  $("uploadBtn").addEventListener("click",()=>$("fileInput").click());
+  $("fileInput").addEventListener("change",e=>{if(e.target.files[0])loadUpload(e.target.files[0]);});
+  $("resetBtn").addEventListener("click",()=>loadGenerated("voice"));
+  ["operationSelect","lowSlider","highSlider","gainSlider","softSlider","invertToggle"].forEach(id=>$(id).addEventListener("input",()=>{processed=null;syncLabels();render();}));
+  ["startSlider","endSlider"].forEach(id=>$(id).addEventListener("input",()=>{processed=null;clearAnalysis();syncLabels();render();}));
+  $("fullSegmentBtn").addEventListener("click",()=>{if(!source)return;$("startSlider").value="0";$("endSlider").value=fullDuration().toFixed(3);processed=null;clearAnalysis();syncLabels();render();});
+  $("applyBtn").addEventListener("click",applyEdit);
+  $("playOriginal").addEventListener("click",()=>source&&DSP.play(source.data,source.sr));
+  $("playModified").addEventListener("click",()=>processed&&DSP.play(processed.data,source.sr));
+  $("stopBtn").addEventListener("click",DSP.stop);
+  $("spectrumCanvas").addEventListener("pointerdown",e=>{if(!source)return;const f=freqFromEvent(e),lo=+$("lowSlider").value,hi=+$("highSlider").value;draggingMarker=Math.abs(f-lo)<Math.abs(f-hi)?"low":"high";$(draggingMarker+"Slider").value=f;processed=null;syncLabels();render();});
+  $("spectrumCanvas").addEventListener("pointermove",e=>{if(!draggingMarker||!source)return;$(draggingMarker+"Slider").value=DSP.clamp(freqFromEvent(e),20,source.sr/2);processed=null;syncLabels();render();});
+  window.addEventListener("pointerup",()=>draggingMarker=null);
+  window.addEventListener("resize",render);
+  loadGenerated("voice");
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>

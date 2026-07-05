@@ -25,6 +25,9 @@
       { href: "fourier-heat-diffusion.html", icon: "🔥", label: "Heat Diffusion" },
       { href: "fourier-epicycles-1d.html", icon: "🌀", label: "1D Epicycles" },
       { href: "fourier-epicycles-2d.html", icon: "✒️", label: "2D Epicycles" },
+      { group: "Fourier Transform" },
+      { href: "listening-to-frequencies.html", icon: "✂️", label: "Frequency Scissors" },
+      { href: "noise-surgery.html", icon: "🩺", label: "Noise Surgery" },
     ],
     footer: "Anik Saha<br>aaniksahaa.2001@gmail.com",
   };

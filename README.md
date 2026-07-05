@@ -11,11 +11,14 @@ visualizations for CSE 219. It's built to be served for free on **GitHub Pages**
 |------|------------|
 | `index.html` | Course home — hero + cards linking to each demo. |
 | `listening-to-convolution.html` | **Convolution & LTI Systems** demo: pick a system by its impulse response h[n] and hear y = x ∗ h. |
+| `listening-to-frequencies.html` | **Frequency Scissors** demo: edit audio by cutting, boosting, attenuating, or isolating selected frequency bands with STFT processing. |
+| `noise-surgery.html` | **Noise Surgery** demo: inject tonal or burst frequency noise, locate it in spectrum/spectrogram views, and remove it. |
 | `fourier-vibrating-string.html` | **Fourier Series & Vibrating String** demo: draw an initial string shape, decompose it into sine modes, and animate the ideal fixed-end string. |
 | `fourier-heat-diffusion.html` | **Fourier Series & Heat Diffusion** demo: draw an initial temperature profile, decompose it into heat modes, and watch diffusion smooth it. |
 | `fourier-epicycles-1d.html` | **Fourier Series 1D Epicycles** demo: build periodic waveforms by adding rotating complex Fourier coefficient vectors. |
 | `fourier-epicycles-2d.html` | **Fourier Drawing Epicycles** demo: rebuild closed 2D curves with complex Fourier coefficients and rotating vectors. |
 | `assets/site.css` | Shared styles for the site shell (sidebar + layout). |
+| `assets/audio-fourier.js` | Shared FFT/STFT, generated sample audio, playback, waveform, spectrum, and spectrogram helpers. |
 | `assets/site.js` | **Single source of truth for the sidebar** — brand, nav links, footer. |
 | `.nojekyll` | Tells GitHub Pages to serve files as-is (no Jekyll processing). |
 
