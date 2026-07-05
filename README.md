@@ -4,6 +4,7 @@ A tiny, dependency-free **static course website** that hosts in-browser
 visualizations for CSE 219. It's built to be served for free on **GitHub Pages**
 — there is no backend, no build step, and no data is ever saved or sent anywhere.
 
+
 ## Pages
 
 | File | What it is |
