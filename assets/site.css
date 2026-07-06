@@ -43,6 +43,8 @@ body{
 .hero{margin-bottom:34px}
 .hero .eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
 .hero h1{font-size:34px;letter-spacing:-.025em;margin:8px 0 10px}
+.hero-title{display:flex;align-items:center;gap:12px}
+.hero-logo{width:40px;height:40px;border-radius:9px;flex:none}
 .hero .lead{font-size:16.5px;color:#4b5563;max-width:640px;margin:0}
 .demo-group{margin-top:30px}
 .demo-group:first-of-type{margin-top:0}
@@ -76,4 +78,5 @@ a.demo-card:hover{border-color:#c9cdfb;box-shadow:0 2px 4px rgba(16,24,40,.06),0
   .nav a small{display:none}
   .content-inner{padding:32px 20px 60px}
   .hero h1{font-size:27px}
+  .hero-logo{width:34px;height:34px;border-radius:8px}
 }
