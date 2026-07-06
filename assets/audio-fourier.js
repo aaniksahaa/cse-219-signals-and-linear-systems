@@ -68,22 +68,187 @@
     return { name: file.name, sr, data: normalize(out) };
   }
 
+  async function loadAudioLibrary(manifestUrl = "assets/audios/library.json") {
+    const res = await fetch(manifestUrl, { cache: "no-cache" });
+    if (!res.ok) throw new Error(`Could not load audio library (${res.status})`);
+    const base = new URL(manifestUrl, document.baseURI);
+    const raw = await res.json();
+    const items = Array.isArray(raw) ? raw : raw.audios;
+    if (!Array.isArray(items)) return [];
+    return items
+      .filter(item => item && item.file)
+      .map(item => ({
+        ...item,
+        id: item.id || item.file,
+        name: item.name || item.file,
+        url: new URL(item.file, base).href,
+        start: Number.isFinite(+item.start) ? +item.start : 0,
+        end: Number.isFinite(+item.end) ? +item.end : null,
+        sizeBytes: Number.isFinite(+item.sizeBytes) ? +item.sizeBytes : null
+      }));
+  }
+
+  const assetSegmentCache = new Map();
+  async function decodeAsset(asset) {
+    if (!asset || !asset.url) throw new Error("Missing audio asset URL");
+    const startHint = Number.isFinite(+asset.start) ? +asset.start : 0;
+    const endHint = Number.isFinite(+asset.end) ? +asset.end : "";
+    const key = `${asset.url}|${startHint}|${endHint}`;
+    if (assetSegmentCache.has(key)) {
+      const cached = assetSegmentCache.get(key);
+      return { ...cached, data: new Float32Array(cached.data) };
+    }
+
+    const ctx = audioContext();
+    const res = await fetch(asset.url);
+    if (!res.ok) throw new Error(`Could not load ${asset.name || asset.file} (${res.status})`);
+    const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+    const fullDuration = buf.duration;
+    const sr = buf.sampleRate;
+    const start = clamp(startHint, 0, Math.max(0, fullDuration - 0.01));
+    const requestedEnd = Number.isFinite(+asset.end) ? +asset.end : fullDuration;
+    const end = clamp(Math.max(start + 0.01, requestedEnd), start + 0.01, fullDuration);
+    const a = Math.floor(start * sr);
+    const b = Math.max(a + 1, Math.min(buf.length, Math.floor(end * sr)));
+    const out = new Float32Array(b - a);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch);
+      for (let i = a; i < b; i++) out[i - a] += src[i] / buf.numberOfChannels;
+    }
+    const decoded = {
+      name: asset.name || asset.file || "Stored audio",
+      sr,
+      data: normalize(out),
+      assetWindow: { start, end, fullDuration, file: asset.file || asset.url }
+    };
+    assetSegmentCache.set(key, decoded);
+    return { ...decoded, data: new Float32Array(decoded.data) };
+  }
+
   let activeSource = null;
-  function play(data, sr) {
+  let activePlayback = null;
+  let playbackRaf = null;
+
+  function clearPlaybackFrame() {
+    if (playbackRaf != null) cancelAnimationFrame(playbackRaf);
+    playbackRaf = null;
+  }
+
+  function playbackPosition() {
+    if (!activePlayback) return 0;
+    if (activePlayback.playing) {
+      const ctx = audioContext();
+      return clamp(activePlayback.offset + ctx.currentTime - activePlayback.startedAt, 0, activePlayback.duration);
+    }
+    return clamp(activePlayback.offset, 0, activePlayback.duration);
+  }
+
+  function playbackState() {
+    if (!activePlayback) return { id: null, playing: false, paused: false, position: 0, duration: 0 };
+    return {
+      id: activePlayback.id,
+      playing: !!activePlayback.playing,
+      paused: !!activePlayback.paused,
+      position: playbackPosition(),
+      duration: activePlayback.duration
+    };
+  }
+
+  function emitPlaybackUpdate() {
+    if (activePlayback && typeof activePlayback.onUpdate === "function")
+      activePlayback.onUpdate(playbackState());
+  }
+
+  function tickPlayback() {
+    if (!activePlayback || !activePlayback.playing) return;
+    emitPlaybackUpdate();
+    playbackRaf = requestAnimationFrame(tickPlayback);
+  }
+
+  function startActivePlayback(offset) {
+    if (!activePlayback) return;
     const ctx = audioContext();
     if (activeSource) { try { activeSource.stop(); } catch (_) {} }
+    const src = ctx.createBufferSource();
+    src.buffer = activePlayback.buffer;
+    src.connect(ctx.destination);
+    activePlayback.offset = clamp(offset || 0, 0, Math.max(0, activePlayback.duration - 0.001));
+    activePlayback.startedAt = ctx.currentTime;
+    activePlayback.playing = true;
+    activePlayback.paused = false;
+    activeSource = src;
+    src.onended = () => {
+      if (activeSource !== src || !activePlayback || activePlayback.paused) return;
+      activePlayback.offset = activePlayback.duration;
+      activePlayback.playing = false;
+      activePlayback.paused = false;
+      activeSource = null;
+      clearPlaybackFrame();
+      emitPlaybackUpdate();
+      if (typeof activePlayback.onEnded === "function") activePlayback.onEnded(playbackState());
+      activePlayback = null;
+    };
+    src.start(0, activePlayback.offset);
+    clearPlaybackFrame();
+    tickPlayback();
+  }
+
+  function play(data, sr, opts = {}) {
+    stop();
+    const ctx = audioContext();
     const buf = ctx.createBuffer(1, data.length, sr);
     buf.copyToChannel(data, 0);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start();
-    activeSource = src;
-    src.onended = () => { if (activeSource === src) activeSource = null; };
+    activePlayback = {
+      id: opts.id || null,
+      buffer: buf,
+      offset: clamp(+opts.offset || 0, 0, data.length / sr),
+      startedAt: 0,
+      duration: data.length / sr,
+      playing: false,
+      paused: false,
+      onUpdate: opts.onUpdate || null,
+      onEnded: opts.onEnded || null
+    };
+    startActivePlayback(activePlayback.offset);
+    emitPlaybackUpdate();
   }
-  function stop() {
+
+  function pause() {
+    if (!activePlayback || !activePlayback.playing) return;
+    activePlayback.offset = playbackPosition();
+    activePlayback.playing = false;
+    activePlayback.paused = true;
     if (activeSource) { try { activeSource.stop(); } catch (_) {} }
     activeSource = null;
+    clearPlaybackFrame();
+    emitPlaybackUpdate();
+  }
+
+  function resume() {
+    if (!activePlayback || !activePlayback.paused) return;
+    startActivePlayback(activePlayback.offset);
+    emitPlaybackUpdate();
+  }
+
+  function togglePause() {
+    if (!activePlayback) return playbackState();
+    if (activePlayback.playing) pause();
+    else if (activePlayback.paused) resume();
+    return playbackState();
+  }
+
+  function stop() {
+    if (activePlayback) activePlayback.offset = playbackPosition();
+    if (activeSource) { try { activeSource.stop(); } catch (_) {} }
+    activeSource = null;
+    clearPlaybackFrame();
+    if (activePlayback) {
+      activePlayback.playing = false;
+      activePlayback.paused = false;
+      activePlayback.offset = 0;
+      emitPlaybackUpdate();
+    }
+    activePlayback = null;
   }
 
   function fft(re, im, inverse = false) {
@@ -232,7 +397,8 @@
     ctx.strokeStyle = "#d9dde8"; ctx.beginPath(); ctx.moveTo(34, mid); ctx.lineTo(w - 12, mid); ctx.stroke();
     if (cursor != null) {
       const x = 34 + clamp(cursor * sr / data.length, 0, 1) * cols;
-      ctx.strokeStyle = "#111827"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, 12); ctx.lineTo(x, h - 12); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = "#111827"; ctx.lineWidth = 1.25;
+      ctx.beginPath(); ctx.moveTo(x, 12); ctx.lineTo(x, h - 12); ctx.stroke();
     }
   }
 
@@ -307,7 +473,7 @@
   }
 
   window.CSE219AudioFourier = {
-    makeSample, decodeFile, play, stop, stftProcess, injectNoise, difference,
+    makeSample, decodeFile, loadAudioLibrary, decodeAsset, play, pause, resume, togglePause, playbackState, stop, stftProcess, injectNoise, difference,
     drawWave, drawSpectrum, drawSpectrogram, normalize, clamp
   };
 })();

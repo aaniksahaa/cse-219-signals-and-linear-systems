@@ -144,6 +144,8 @@
     </div>
     <div class="row" style="margin-top:14px">
       <button class="btn play" id="playX" disabled>▶ Play input</button>
+      <button class="btn" id="pauseX" disabled>⏸ Pause</button>
+      <span class="meta"><span>Position <b id="xPos">0.00 s</b></span></span>
     </div>
   </section>
 
@@ -171,6 +173,8 @@
         <div id="stabilityNote" class="note" style="margin-top:14px"></div>
         <div class="row" style="margin-top:14px">
           <button class="btn play sys" id="playH">▶ Listen to h[n]</button>
+          <button class="btn" id="pauseH" disabled>⏸ Pause</button>
+          <span class="meta"><span>Position <b id="hPos">0.00 s</b></span></span>
         </div>
       </div>
     </div>
@@ -199,8 +203,10 @@
         <button data-ab="y">Output</button>
       </span>
       <button class="btn play out" id="playSel" disabled>▶ Play</button>
+      <button class="btn" id="pauseSel" disabled>⏸ Pause</button>
       <button class="btn" id="stopBtn" disabled>⏹ Stop</button>
       <button class="btn" id="downloadBtn" disabled>⬇ Download WAV</button>
+      <span class="meta"><span>Position <b id="selPos">0.00 s</b></span></span>
     </div>
 
     <div class="warning" id="clipWarn">⚠ The output exceeds ±1.0 and will clip / distort. Turn on normalization, or that distortion <i>is</i> the teaching point (e.g. an unstable system).</div>
@@ -245,7 +251,11 @@ let audioCtx = null;                 // playback context (created on first gestu
 let input = null;                    // {data:Float32Array, sr:Number, name:String}
 let outputData = null;               // Float32Array of processed y (post gain/normalize)
 let activeSource = null;             // currently playing BufferSource
+let activePlayback = null;
+let playbackRaf = null;
 let abSel = 'x';
+let selectedPlaybackKind = 'y';
+const playbackIds = {x:'conv-input', h:'conv-ir', sel:'conv-selected'};
 
 function ctx(){
   if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -322,11 +332,12 @@ function loadSample(s){
    INPUT HANDLING
    ==================================================================== */
 function setInput(data, sr, name){
+  stopPlay();
   // normalize input peak to a comfortable level for fair comparison
   let pk=0; for(const v of data) pk=Math.max(pk,Math.abs(v));
   if(pk>0 && pk!==1){ /* keep as-is unless silent */ }
   input = {data, sr, name};
-  drawWave('canvasX', data, 0, '#2563eb');
+  drawWave('canvasX', data, 0, '#2563eb', false, cursorIndexFor('x', sr));
   $('xDur').textContent = (data.length/sr).toFixed(2)+' s';
   $('xSr').textContent = sr.toLocaleString()+' Hz';
   $('xLen').textContent = data.length.toLocaleString();
@@ -422,7 +433,8 @@ function refreshH(){
   $('irFormula').innerHTML = curIR.formula;
   $('irExplain').textContent = curIR.explain;
   const {data, center} = buildH();
-  drawWave('canvasH', data, center, '#7c3aed', true);
+  const cursor = cursorIndexFor('h', sr);
+  drawWave('canvasH', data, center, '#7c3aed', true, cursor);
   let sum=0,taps=0; for(const v of data){sum+=Math.abs(v); if(Math.abs(v)>1e-6)taps++;}
   const sr = input?input.sr:(audioCtx?audioCtx.sampleRate:44100);
   $('hSum').textContent = curIR.stability(irParamVals[curIR.id]).summable ? sum.toFixed(2) : sum.toFixed(0)+' ↗';
@@ -452,7 +464,7 @@ function fitCanvas(cv){
   const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
   return {g,w,h};
 }
-function drawWave(id, data, center, color, stem=false){
+function drawWave(id, data, center, color, stem=false, cursorIndex=null){
   const cv=$(id); const {g,w,h}=fitCanvas(cv);
   g.clearRect(0,0,w,h);
   const mid=h/2;
@@ -510,6 +522,11 @@ function drawWave(id, data, center, color, stem=false){
     }
     g.closePath(); g.fill();
   }
+  if(cursorIndex!=null){
+    const x=pad+(Math.max(0,Math.min(cursorIndex,Math.max(1,data.length-1)))/Math.max(1,data.length-1))*plotW;
+    g.strokeStyle='#111827'; g.lineWidth=1.25;
+    g.beginPath(); g.moveTo(x,4); g.lineTo(x,h-4); g.stroke();
+  }
 }
 
 /* ====================================================================
@@ -548,6 +565,7 @@ async function doConvolve(){
 
 let lastWet=null, lastSr=44100;
 function processOutput(wet, sr){
+  if(activePlayback && activePlayback.id===playbackIds.sel) stopPlay();
   if(wet) { lastWet=wet; lastSr=sr; }
   wet=lastWet; sr=lastSr; if(!wet)return;
   const gain=parseFloat($('gain').value);
@@ -561,7 +579,7 @@ function processOutput(wet, sr){
   for(let i=0;i<out.length;i++) out[i]*=scale;
   let pk2=0; for(const v of out) pk2=Math.max(pk2,Math.abs(v));
   outputData=out;
-  drawWave('canvasY', out, 0, '#059669');
+  drawWave('canvasY', out, 0, '#059669', false, cursorIndexFor('sel', sr));
   $('yDur').textContent=(out.length/sr).toFixed(2)+' s';
   $('yPeak').textContent=pk2.toFixed(3)+(norm?'':' (raw ×'+gain+')');
   $('clipWarn').classList.toggle('show', pk2>1.0001);
@@ -571,22 +589,125 @@ function processOutput(wet, sr){
 /* ====================================================================
    PLAYBACK
    ==================================================================== */
-function stopPlay(){ if(activeSource){try{activeSource.stop();}catch(e){} activeSource=null;} }
-function playFloat(data, sr){
+function clearPlaybackFrame(){ if(playbackRaf!=null)cancelAnimationFrame(playbackRaf); playbackRaf=null; }
+function playbackPosition(){
+  if(!activePlayback)return 0;
+  if(activePlayback.playing)return Math.max(0,Math.min(activePlayback.duration,activePlayback.offset+ctx().currentTime-activePlayback.startedAt));
+  return Math.max(0,Math.min(activePlayback.duration,activePlayback.offset));
+}
+function playbackState(){
+  if(!activePlayback)return {id:null,playing:false,paused:false,position:0,duration:0};
+  return {id:activePlayback.id,playing:activePlayback.playing,paused:activePlayback.paused,position:playbackPosition(),duration:activePlayback.duration};
+}
+function fmtSeconds(v){return (v||0).toFixed(2)+' s';}
+function cursorIndexFor(kind,sr){
+  const st=playbackState();
+  const active = st.playing || st.paused;
+  if(!active)return null;
+  if(st.id===playbackIds[kind])return st.position*sr;
+  if(kind==='x'&&st.id===playbackIds.sel&&selectedPlaybackKind==='x')return st.position*sr;
+  if(kind==='sel'&&st.id===playbackIds.sel&&selectedPlaybackKind==='y')return st.position*sr;
+  return null;
+}
+function renderPlaybackWaveforms(){
+  if(input)drawWave('canvasX',input.data,0,'#2563eb',false,cursorIndexFor('x',input.sr));
+  const {data:hData,center}=buildH();
+  const hSr=input?input.sr:(audioCtx?audioCtx.sampleRate:44100);
+  drawWave('canvasH',hData,center,'#7c3aed',true,cursorIndexFor('h',hSr));
+  if(outputData)drawWave('canvasY',outputData,0,'#059669',false,cursorIndexFor('sel',lastSr));
+}
+function updatePlaybackUi(st=playbackState()){
+  const xActive=st.id===playbackIds.x&&(st.playing||st.paused);
+  const hActive=st.id===playbackIds.h&&(st.playing||st.paused);
+  const selActive=st.id===playbackIds.sel&&(st.playing||st.paused);
+  $('pauseX').disabled=!xActive;
+  $('pauseH').disabled=!hActive;
+  $('pauseSel').disabled=!selActive;
+  $('pauseX').textContent=xActive&&st.paused?'▶ Resume':'⏸ Pause';
+  $('pauseH').textContent=hActive&&st.paused?'▶ Resume':'⏸ Pause';
+  $('pauseSel').textContent=selActive&&st.paused?'▶ Resume':'⏸ Pause';
+  $('xPos').textContent=xActive?fmtSeconds(st.position):'0.00 s';
+  $('hPos').textContent=hActive?fmtSeconds(st.position):'0.00 s';
+  $('selPos').textContent=selActive?fmtSeconds(st.position):'0.00 s';
+  renderPlaybackWaveforms();
+}
+function tickPlayback(){
+  if(!activePlayback||!activePlayback.playing)return;
+  updatePlaybackUi();
+  playbackRaf=requestAnimationFrame(tickPlayback);
+}
+function startPlayback(offset){
+  if(!activePlayback)return;
+  const ac=ctx();
+  if(activeSource){try{activeSource.stop();}catch(e){}}
+  const s=ac.createBufferSource(); s.buffer=activePlayback.buffer; s.connect(ac.destination);
+  activePlayback.offset=Math.max(0,Math.min(offset||0,Math.max(0,activePlayback.duration-0.001)));
+  activePlayback.startedAt=ac.currentTime;
+  activePlayback.playing=true;
+  activePlayback.paused=false;
+  activeSource=s;
+  s.onended=()=>{
+    if(activeSource!==s||!activePlayback||activePlayback.paused)return;
+    activePlayback.offset=activePlayback.duration;
+    activePlayback.playing=false;
+    activePlayback.paused=false;
+    activeSource=null;
+    clearPlaybackFrame();
+    updatePlaybackUi();
+    activePlayback=null;
+  };
+  s.start(0,activePlayback.offset);
+  clearPlaybackFrame();
+  tickPlayback();
+}
+function stopPlay(){
+  if(activePlayback)activePlayback.offset=playbackPosition();
+  if(activeSource){try{activeSource.stop();}catch(e){} activeSource=null;}
+  clearPlaybackFrame();
+  if(activePlayback){
+    activePlayback.playing=false;
+    activePlayback.paused=false;
+    activePlayback.offset=0;
+    updatePlaybackUi();
+  }
+  activePlayback=null;
+}
+function pausePlay(){
+  if(!activePlayback||!activePlayback.playing)return;
+  activePlayback.offset=playbackPosition();
+  activePlayback.playing=false;
+  activePlayback.paused=true;
+  if(activeSource){try{activeSource.stop();}catch(e){} activeSource=null;}
+  clearPlaybackFrame();
+  updatePlaybackUi();
+}
+function resumePlay(){
+  if(!activePlayback||!activePlayback.paused)return;
+  startPlayback(activePlayback.offset);
+  updatePlaybackUi();
+}
+function togglePause(){ if(activePlayback&&activePlayback.playing)pausePlay(); else if(activePlayback&&activePlayback.paused)resumePlay(); }
+function playFloat(data, sr, id){
   stopPlay();
   const ac=ctx();
   const b=ac.createBuffer(1, data.length, sr);
   b.copyToChannel(data,0);
-  const s=ac.createBufferSource(); s.buffer=b; s.connect(ac.destination); s.start();
-  activeSource=s; s.onended=()=>{if(activeSource===s)activeSource=null;};
+  activePlayback={id,buffer:b,offset:0,startedAt:0,duration:data.length/sr,playing:false,paused:false};
+  startPlayback(0);
+  updatePlaybackUi();
 }
-function playInput(){ if(input) playFloat(input.data, input.sr); }
+function playInput(){ if(input) playFloat(input.data, input.sr, playbackIds.x); }
 function playH(){ const {data}=buildH(); // normalize for audible listening
   let pk=0;for(const v of data)pk=Math.max(pk,Math.abs(v));const n=new Float32Array(data.length);const s=pk>0?0.9/pk:1;for(let i=0;i<data.length;i++)n[i]=data[i]*s;
-  playFloat(n, input?input.sr:(audioCtx?audioCtx.sampleRate:44100)); }
+  playFloat(n, input?input.sr:(audioCtx?audioCtx.sampleRate:44100), playbackIds.h); }
 function playSelected(){
-  if(abSel==='x') playInput();
-  else if(outputData) playFloat(outputData, lastSr);
+  if(abSel==='x'&&input){
+    selectedPlaybackKind='x';
+    playFloat(input.data, input.sr, playbackIds.sel);
+  }else if(outputData){
+    selectedPlaybackKind='y';
+    playFloat(outputData, lastSr, playbackIds.sel);
+  }
 }
 function selectAB(which){
   abSel=which;
@@ -637,6 +758,9 @@ function init(){
   $('playH').addEventListener('click',playH);
   $('convolveBtn').addEventListener('click',doConvolve);
   $('playSel').addEventListener('click',playSelected);
+  $('pauseX').addEventListener('click',togglePause);
+  $('pauseH').addEventListener('click',togglePause);
+  $('pauseSel').addEventListener('click',togglePause);
   $('stopBtn').addEventListener('click',stopPlay);
   $('downloadBtn').addEventListener('click',download);
 
@@ -654,9 +778,9 @@ function init(){
 
   // redraw on resize
   window.addEventListener('resize',()=>{
-    if(input)drawWave('canvasX',input.data,0,'#2563eb');
+    if(input)drawWave('canvasX',input.data,0,'#2563eb',false,cursorIndexFor('x',input.sr));
     refreshH();
-    if(outputData)drawWave('canvasY',outputData,0,'#059669');
+    if(outputData)drawWave('canvasY',outputData,0,'#059669',false,cursorIndexFor('sel',lastSr));
   });
 
   // load a friendly default so the page is alive immediately

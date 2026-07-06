@@ -38,12 +38,23 @@
     <section class="card">
       <h2>Audio source</h2>
       <div class="grid2">
-        <div><div class="chips" id="sampleChips"></div><p class="hint">Generated classroom-safe sounds are used by default; uploaded audio is processed locally in your browser.</p></div>
+        <div>
+          <div class="chips" id="sampleChips"></div>
+        </div>
         <div>
           <div class="row"><button class="btn" id="uploadBtn">📁 Upload audio</button><input class="hidden" id="fileInput" type="file" accept="audio/*" /><button class="btn" id="resetBtn">↺ Reset</button></div>
           <div class="meta"><span>Source <b id="sourceName">—</b></span><span>Full duration <b id="durVal">—</b></span><span>Sample rate <b id="srVal">—</b></span></div>
         </div>
       </div>
+      <div style="margin-top:16px">
+        <label class="toggle" style="display:block;margin-bottom:8px">Stored audio</label>
+        <div class="chips" id="assetQuick"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn hidden" id="assetMore" type="button">More...</button>
+          <select class="hidden" id="assetSelect"><option value="">Loading stored audio...</option></select>
+        </div>
+      </div>
+      <p class="hint" id="assetHint">Generated sounds are used by default. Stored MP3s and uploaded audio are loaded only after selection.</p>
     </section>
 
     <section class="card">
@@ -51,7 +62,9 @@
       <div class="wave-wrap"><canvas id="originalWaveCanvas" height="145"></canvas></div>
       <div class="row" style="margin-top:14px">
         <button class="btn in" id="playOriginal">▶ Original</button>
+        <button class="btn" id="pauseOriginal" disabled>⏸ Pause</button>
         <button class="btn" id="stopBtn">⏹ Stop</button>
+        <span class="meta"><span>Position <b id="originalPos">0.00 s</b></span></span>
       </div>
     </section>
 
@@ -71,8 +84,8 @@
           <div class="row" style="margin-top:12px"><label class="toggle"><input type="checkbox" id="invertToggle" /> Apply outside band</label></div>
         </div>
         <div>
-          <div class="control"><label for="lowSlider">Low frequency</label><input id="lowSlider" type="range" min="20" max="12000" step="10" value="300" /><span class="val" id="lowVal">300 Hz</span></div>
-          <div class="control"><label for="highSlider">High frequency</label><input id="highSlider" type="range" min="20" max="12000" step="10" value="3000" /><span class="val" id="highVal">3000 Hz</span></div>
+          <div class="control"><label for="lowSlider">Low frequency</label><input id="lowSlider" type="range" min="20" max="24000" step="10" value="300" /><span class="val" id="lowVal">300 Hz</span></div>
+          <div class="control"><label for="highSlider">High frequency</label><input id="highSlider" type="range" min="20" max="24000" step="10" value="3000" /><span class="val" id="highVal">3000 Hz</span></div>
         </div>
         <div>
           <div class="control"><label for="gainSlider">Gain</label><input id="gainSlider" type="range" min="0.05" max="4" step="0.05" value="0.25" /><span class="val" id="gainVal">0.25×</span></div>
@@ -99,7 +112,9 @@
       </div>
       <div class="row" style="margin-top:14px">
         <button class="btn out" id="playModified" disabled>▶ Modified full audio</button>
+        <button class="btn" id="pauseModified" disabled>⏸ Pause</button>
         <span class="meta"><span>Status <b id="modifiedStatus">Apply an edit first</b></span></span>
+        <span class="meta"><span>Position <b id="modifiedPos">0.00 s</b></span></span>
       </div>
     </section>
 
@@ -112,12 +127,13 @@
 const $ = id => document.getElementById(id);
 const DSP = window.CSE219AudioFourier;
 const samples = [
-  {id:"voice", label:"Voice-like"},
   {id:"pluck", label:"Plucked tone"},
   {id:"chord", label:"Chord"},
   {id:"drum", label:"Drum hit"}
 ];
 let source = null, processed = null, draggingMarker = null;
+let audioAssets = [];
+const playbackIds = { original:"frequency-original", modified:"frequency-modified" };
 
 function cfg(){
   return {
@@ -132,6 +148,29 @@ function cfg(){
   };
 }
 function fmtHz(v){ return v >= 1000 ? (v/1000).toFixed(v>=10000?1:2)+" kHz" : Math.round(v)+" Hz"; }
+function fmtTime(v){
+  const m = Math.floor(v / 60), s = Math.round(v - m * 60);
+  return m ? `${m}:${String(s).padStart(2,"0")}` : `${s}s`;
+}
+function fmtBytes(v){
+  if(!Number.isFinite(v)) return "";
+  return v >= 1024 * 1024 ? `${(v / 1024 / 1024).toFixed(1)} MB` : `${Math.round(v / 1024)} KB`;
+}
+function fmtSeconds(v){ return `${(v || 0).toFixed(2)} s`; }
+function assetLabel(asset){
+  const range = Number.isFinite(asset.end) ? ` · ${fmtTime(asset.start)}-${fmtTime(asset.end)}` : "";
+  const size = asset.sizeBytes ? ` · ${fmtBytes(asset.sizeBytes)}` : "";
+  return `${asset.name}${range}${size}`;
+}
+function clearStoredAudioSelection(){
+  document.querySelectorAll(".asset-chip").forEach(c=>c.classList.remove("on"));
+  $("assetSelect").value = "";
+}
+function setStoredAudioSelection(assetId){
+  document.querySelectorAll(".asset-chip").forEach(c=>c.classList.toggle("on", c.dataset.id === assetId));
+  const select = $("assetSelect");
+  select.value = Array.from(select.options).some(o=>o.value === assetId) ? assetId : "";
+}
 function syncLabels(){
   let lo=+$("lowSlider").value, hi=+$("highSlider").value;
   if(lo>hi){ [lo,hi]=[hi,lo]; }
@@ -176,6 +215,14 @@ function resetSegmentControls(){
   $("startSlider").value = "0";
   $("endSlider").value = end.toFixed(3);
 }
+function resetFrequencyControls(){
+  if(!source) return;
+  const nyq = source.sr / 2;
+  ["lowSlider","highSlider"].forEach(id=>{
+    $(id).max = Math.floor(nyq).toString();
+    if(+$(`${id}`).value > nyq) $(id).value = Math.floor(nyq).toString();
+  });
+}
 function clearAnalysis(){
   if(source){
     source._analysis = null;
@@ -203,14 +250,46 @@ function drawEmptyModified(){
   drawEmptyCanvas($("modifiedWaveCanvas"), "Apply a frequency edit to generate the modified sound.");
   drawEmptyCanvas($("modifiedSpectrumCanvas"), "The modified spectrum will appear here.");
 }
+function cursorFor(kind){
+  const st = DSP.playbackState();
+  return st.id === playbackIds[kind] && (st.playing || st.paused) ? st.position : null;
+}
+function drawTrackedWaveforms(){
+  if(!source) return;
+  DSP.drawWave($("originalWaveCanvas"), source.data, source.sr, "#2563eb", cursorFor("original"));
+  if(processed) DSP.drawWave($("modifiedWaveCanvas"), processed.data, source.sr, "#059669", cursorFor("modified"));
+  else drawEmptyCanvas($("modifiedWaveCanvas"), "Apply a frequency edit to generate the modified sound.");
+}
+function updatePlaybackUi(st = DSP.playbackState()){
+  const originalActive = st.id === playbackIds.original && (st.playing || st.paused);
+  const modifiedActive = st.id === playbackIds.modified && (st.playing || st.paused);
+  $("pauseOriginal").disabled = !originalActive;
+  $("pauseModified").disabled = !modifiedActive || !processed;
+  $("pauseOriginal").textContent = originalActive && st.paused ? "▶ Resume" : "⏸ Pause";
+  $("pauseModified").textContent = modifiedActive && st.paused ? "▶ Resume" : "⏸ Pause";
+  $("originalPos").textContent = originalActive ? fmtSeconds(st.position) : "0.00 s";
+  $("modifiedPos").textContent = modifiedActive ? fmtSeconds(st.position) : "0.00 s";
+  drawTrackedWaveforms();
+}
+function playTracked(kind, data, sr){
+  DSP.play(data, sr, {
+    id: playbackIds[kind],
+    onUpdate: updatePlaybackUi,
+    onEnded: updatePlaybackUi
+  });
+}
+function invalidateProcessed(){
+  if(DSP.playbackState().id === playbackIds.modified) DSP.stop();
+  processed = null;
+}
 function render(){
   if(!source) return;
   syncLabels();
   const originalAnalysis = sourceAnalysis();
-  DSP.drawWave($("originalWaveCanvas"), source.data, source.sr, "#2563eb");
+  DSP.drawWave($("originalWaveCanvas"), source.data, source.sr, "#2563eb", cursorFor("original"));
   DSP.drawSpectrum($("spectrumCanvas"), originalAnalysis.avg, source.sr, originalAnalysis.fftSize, cfg());
   if(processed){
-    DSP.drawWave($("modifiedWaveCanvas"), processed.data, source.sr, "#059669");
+    DSP.drawWave($("modifiedWaveCanvas"), processed.data, source.sr, "#059669", cursorFor("modified"));
     DSP.drawSpectrum($("modifiedSpectrumCanvas"), processed.avgOut, source.sr, processed.fftSize, cfg());
     $("playModified").disabled = false;
     $("modifiedStatus").textContent = "Ready";
@@ -222,6 +301,7 @@ function render(){
   $("sourceName").textContent = source.name;
   $("durVal").textContent = (source.data.length/source.sr).toFixed(2)+" s";
   $("srVal").textContent = Math.round(source.sr).toLocaleString()+" Hz";
+  updatePlaybackUi();
 }
 function sourceAnalysis(){
   const s = segmentBounds();
@@ -233,24 +313,101 @@ function sourceAnalysis(){
   return source._analysis;
 }
 function loadGenerated(id){
+  DSP.stop();
   source = DSP.makeSample(id);
   source.name = samples.find(s=>s.id===id).label;
   processed = null;
   clearAnalysis();
   resetSegmentControls();
+  resetFrequencyControls();
   document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.id===id));
+  clearStoredAudioSelection();
   render();
 }
+async function loadStoredAsset(assetId){
+  const asset = audioAssets.find(a=>a.id===assetId);
+  if(!asset) return;
+  const select = $("assetSelect");
+  select.disabled = true;
+  $("sourceName").textContent = "Loading...";
+  try{
+    DSP.stop();
+    source = await DSP.decodeAsset(asset);
+    if(source.assetWindow) source.name = `${source.name} (${fmtTime(source.assetWindow.start)}-${fmtTime(source.assetWindow.end)})`;
+    processed = null;
+    clearAnalysis();
+    resetSegmentControls();
+    resetFrequencyControls();
+    document.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
+    setStoredAudioSelection(assetId);
+    render();
+  }catch(err){
+    $("assetHint").textContent = err.message || "Could not load stored audio.";
+    select.value = "";
+  }finally{
+    select.disabled = false;
+  }
+}
+async function initAudioAssets(){
+  const select = $("assetSelect");
+  const quick = $("assetQuick");
+  const more = $("assetMore");
+  try{
+    audioAssets = await DSP.loadAudioLibrary();
+    if(!audioAssets.length){
+      quick.innerHTML = `<div class="hint" style="margin:0">No stored audio found.</div>`;
+      select.innerHTML = `<option value="">No stored audio found</option>`;
+      select.disabled = true;
+      more.classList.add("hidden");
+      return;
+    }
+    const visibleAssets = audioAssets.slice(0, 3);
+    const extraAssets = audioAssets.slice(3);
+    quick.innerHTML = "";
+    visibleAssets.forEach(asset=>{
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip asset-chip";
+      button.dataset.id = asset.id;
+      button.textContent = asset.name;
+      button.title = assetLabel(asset);
+      button.addEventListener("click",()=>loadStoredAsset(asset.id));
+      quick.appendChild(button);
+    });
+    if(extraAssets.length){
+      select.innerHTML = `<option value="">Choose more stored MP3...</option>` +
+        extraAssets.map(a=>`<option value="${a.id}">${assetLabel(a)}</option>`).join("");
+      select.disabled = false;
+      more.classList.remove("hidden");
+    }else{
+      select.innerHTML = `<option value="">No more stored audio</option>`;
+      select.disabled = true;
+      more.classList.add("hidden");
+      select.classList.add("hidden");
+    }
+  }catch(err){
+    quick.innerHTML = "";
+    select.innerHTML = `<option value="">Stored audio unavailable</option>`;
+    select.disabled = true;
+    more.classList.add("hidden");
+    $("assetHint").textContent = err.message || "Stored audio unavailable.";
+  }
+}
 async function loadUpload(file){
+  DSP.stop();
   source = await DSP.decodeFile(file);
   processed = null;
   clearAnalysis();
   resetSegmentControls();
+  resetFrequencyControls();
   document.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
+  clearStoredAudioSelection();
   render();
 }
 function applyEdit(){
   if(!source) return;
+  const st = DSP.playbackState();
+  if(st.id === playbackIds.modified) DSP.stop();
   syncLabels();
   const s = segmentBounds();
   const edited = DSP.stftProcess(selectedSegment(), source.sr, cfg());
@@ -276,19 +433,28 @@ function init(){
   samples.forEach(s=>{const c=document.createElement("div");c.className="chip";c.dataset.id=s.id;c.textContent=s.label;c.addEventListener("click",()=>loadGenerated(s.id));box.appendChild(c);});
   $("uploadBtn").addEventListener("click",()=>$("fileInput").click());
   $("fileInput").addEventListener("change",e=>{if(e.target.files[0])loadUpload(e.target.files[0]);});
-  $("resetBtn").addEventListener("click",()=>loadGenerated("voice"));
-  ["operationSelect","lowSlider","highSlider","gainSlider","softSlider","invertToggle"].forEach(id=>$(id).addEventListener("input",()=>{processed=null;syncLabels();render();}));
-  ["startSlider","endSlider"].forEach(id=>$(id).addEventListener("input",()=>{processed=null;clearAnalysis();syncLabels();render();}));
-  $("fullSegmentBtn").addEventListener("click",()=>{if(!source)return;$("startSlider").value="0";$("endSlider").value=fullDuration().toFixed(3);processed=null;clearAnalysis();syncLabels();render();});
+  $("assetMore").addEventListener("click",()=>{
+    const select = $("assetSelect");
+    select.classList.toggle("hidden");
+    $("assetMore").textContent = select.classList.contains("hidden") ? "More..." : "Hide";
+  });
+  $("assetSelect").addEventListener("change",e=>{if(e.target.value)loadStoredAsset(e.target.value);});
+  $("resetBtn").addEventListener("click",()=>{clearStoredAudioSelection();loadGenerated("pluck");});
+  ["operationSelect","lowSlider","highSlider","gainSlider","softSlider","invertToggle"].forEach(id=>$(id).addEventListener("input",()=>{invalidateProcessed();syncLabels();render();}));
+  ["startSlider","endSlider"].forEach(id=>$(id).addEventListener("input",()=>{invalidateProcessed();clearAnalysis();syncLabels();render();}));
+  $("fullSegmentBtn").addEventListener("click",()=>{if(!source)return;$("startSlider").value="0";$("endSlider").value=fullDuration().toFixed(3);invalidateProcessed();clearAnalysis();syncLabels();render();});
   $("applyBtn").addEventListener("click",applyEdit);
-  $("playOriginal").addEventListener("click",()=>source&&DSP.play(source.data,source.sr));
-  $("playModified").addEventListener("click",()=>processed&&DSP.play(processed.data,source.sr));
-  $("stopBtn").addEventListener("click",DSP.stop);
+  $("playOriginal").addEventListener("click",()=>source&&playTracked("original",source.data,source.sr));
+  $("playModified").addEventListener("click",()=>processed&&playTracked("modified",processed.data,source.sr));
+  $("pauseOriginal").addEventListener("click",()=>{DSP.togglePause();updatePlaybackUi();});
+  $("pauseModified").addEventListener("click",()=>{DSP.togglePause();updatePlaybackUi();});
+  $("stopBtn").addEventListener("click",()=>{DSP.stop();updatePlaybackUi();});
   $("spectrumCanvas").addEventListener("pointerdown",e=>{if(!source)return;const f=freqFromEvent(e),lo=+$("lowSlider").value,hi=+$("highSlider").value;draggingMarker=Math.abs(f-lo)<Math.abs(f-hi)?"low":"high";$(draggingMarker+"Slider").value=f;processed=null;syncLabels();render();});
   $("spectrumCanvas").addEventListener("pointermove",e=>{if(!draggingMarker||!source)return;$(draggingMarker+"Slider").value=DSP.clamp(freqFromEvent(e),20,source.sr/2);processed=null;syncLabels();render();});
   window.addEventListener("pointerup",()=>draggingMarker=null);
   window.addEventListener("resize",render);
-  loadGenerated("voice");
+  initAudioAssets();
+  loadGenerated("pluck");
 }
 document.addEventListener("DOMContentLoaded",init);
 </script>

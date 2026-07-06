@@ -1,0 +1,28 @@
+{
+  "audios": [
+    {
+      "id": "random-piano",
+      "name": "Random Piano",
+      "file": "Random Piano.mp3",
+      "start": 0,
+      "end": 8.05,
+      "sizeBytes": 257462
+    },
+    {
+      "id": "ed-sheeran-photograph",
+      "name": "Ed Sheeran - Photograph",
+      "file": "Ed Sheeran - Photograph.mp3",
+      "start": 0,
+      "end": 19.03,
+      "sizeBytes": 548877
+    },
+    {
+      "id": "spirited-away-always-with-me",
+      "name": "Spirited Away - Always With Me",
+      "file": "Spirited Away - Always with me.mp3",
+      "start": 0,
+      "end": 120,
+      "sizeBytes": 5565237
+    }
+  ]
+}
