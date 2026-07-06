@@ -28,6 +28,7 @@
       { group: "Fourier Transform" },
       { href: "listening-to-frequencies.html", icon: "✂️", label: "Frequency Scissors" },
       { href: "noise-surgery.html", icon: "🩺", label: "Noise Surgery" },
+      { href: "image-compression-lab.html", icon: "🖼️", label: "Let’s Compress Images" },
     ],
     footer: "Anik Saha<br>aaniksahaa.2001@gmail.com",
   };

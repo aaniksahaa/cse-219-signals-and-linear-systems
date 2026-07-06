@@ -433,10 +433,10 @@ function refreshH(){
   $('irFormula').innerHTML = curIR.formula;
   $('irExplain').textContent = curIR.explain;
   const {data, center} = buildH();
+  const sr = input?input.sr:(audioCtx?audioCtx.sampleRate:44100);
   const cursor = cursorIndexFor('h', sr);
   drawWave('canvasH', data, center, '#7c3aed', true, cursor);
   let sum=0,taps=0; for(const v of data){sum+=Math.abs(v); if(Math.abs(v)>1e-6)taps++;}
-  const sr = input?input.sr:(audioCtx?audioCtx.sampleRate:44100);
   $('hSum').textContent = curIR.stability(irParamVals[curIR.id]).summable ? sum.toFixed(2) : sum.toFixed(0)+' ↗';
   $('hLen').textContent = (data.length/sr*1000).toFixed(0)+' ms';
   $('hTaps').textContent = taps>200? '≈dense' : taps;
@@ -783,8 +783,8 @@ function init(){
     if(outputData)drawWave('canvasY',outputData,0,'#059669',false,cursorIndexFor('sel',lastSr));
   });
 
-  // load a friendly default so the page is alive immediately
-  loadSample(SAMPLES[0]);
+  // Load an obviously audible default so Play gives immediate feedback.
+  loadSample(SAMPLES[1]);
 }
 document.addEventListener('DOMContentLoaded',init);
 </script>

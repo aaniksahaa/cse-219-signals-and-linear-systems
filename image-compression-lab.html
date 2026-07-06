@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🖼️ Let’s Compress Images · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#1c2333;--muted:#6b7280;--line:#e6e8ef;--accent:#4f46e5;--out:#059669;--warn:#dc2626;--shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);--radius:16px}
+  *{box-sizing:border-box}body{background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  header.app{margin-bottom:22px}.title h1{font-size:26px;margin:0;letter-spacing:-.02em}.title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:860px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}.card h2{font-size:12px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.grid2>* ,.grid3>* ,.grid4>*{min-width:0}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.out{background:var(--out);border-color:var(--out);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
+  select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}.control{display:grid;grid-template-columns:142px 1fr 74px;align-items:center;gap:10px;margin:10px 0}.control label{font-size:13px;font-weight:700;color:#4b5563}.control input[type=range]{width:100%;accent-color:var(--accent)}.control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}.toggle input{accent-color:var(--accent)}
+  .canvas-box{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:260px;display:grid;place-items:center}.canvas-box.dark{background:#111827}.canvas-box canvas{display:block;width:100%;height:auto;image-rendering:auto}.single-image{max-width:360px;margin:0 auto}.metric{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:13px 14px}.metric .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:800}.metric .v{font-size:18px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}.metric .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .hint{font-size:13px;color:var(--muted);margin:10px 2px 0}.status{font-size:13px;color:var(--muted)}.hidden{display:none!important}footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+  @media(max-width:900px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.control{grid-template-columns:1fr;gap:6px}.control .val{text-align:left}.canvas-box{min-height:220px}}
+</style>
+</head>
+<body>
+<div class="site"><aside class="sidebar" id="siteSidebar"></aside><main class="content"><div class="wrap">
+  <header class="app"><div class="title">
+    <h1>🖼️ Let’s Compress Images</h1>
+    <p>Compress an image by transforming it into spatial frequencies, keeping fewer coefficients, and reconstructing an approximation.</p>
+  </div></header>
+
+  <section class="card">
+    <h2>Image source</h2>
+    <div class="grid2">
+      <div><div class="chips" id="sampleChips"></div></div>
+      <div>
+        <div class="row"><button class="btn" id="uploadBtn">📁 Upload image</button><input class="hidden" id="fileInput" type="file" accept="image/*" /><button class="btn" id="resetBtn">↺ Reset</button><button class="btn out" id="downloadBtn">⬇ Download reconstruction</button></div>
+        <div class="row" style="margin-top:12px"><span class="status">Source <b id="sourceName">—</b></span><span class="status">Processed size <b id="sizeVal">—</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Original image</h2>
+    <div class="canvas-box single-image"><canvas id="originalCanvas" width="256" height="256"></canvas></div>
+  </section>
+
+  <section class="card">
+    <h2>Compression controls</h2>
+    <div class="grid3">
+      <div>
+        <label class="toggle" style="display:block;margin-bottom:8px">Method</label>
+        <select id="methodSelect">
+          <option value="strongest">Strongest Fourier Coefficients</option>
+          <option value="dct">JPEG-like Block DCT</option>
+        </select>
+      </div>
+      <div>
+        <label class="toggle" style="display:block;margin-bottom:8px">Color</label>
+        <select id="colorSelect">
+          <option value="rgb">RGB channels</option>
+          <option value="gray">Grayscale</option>
+        </select>
+      </div>
+      <div>
+        <label class="toggle" style="display:block;margin-bottom:8px">Working size</label>
+        <select id="sizeSelect">
+          <option value="128">128 x 128</option>
+          <option value="256">256 x 256</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="control" id="keepControl"><label for="keepSlider">Keep</label><input id="keepSlider" type="range" min="0.5" max="30" step="0.5" value="5" /><span class="val" id="keepVal">5.0%</span></div>
+      <div class="control" id="quantControl"><label for="quantSlider">Quantization</label><input id="quantSlider" type="range" min="1" max="80" step="1" value="18" /><span class="val" id="quantVal">18</span></div>
+    </div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" id="compressBtn">Compress</button><label class="toggle"><input type="checkbox" id="errorToggle" /> Show error image</label><span class="status" id="statusVal">Choose settings, then press Compress.</span></div>
+    <p class="hint" id="methodHint">This mode keeps only the largest Fourier coefficients: the frequencies contributing the most energy.</p>
+  </section>
+
+  <div id="resultsWrap" class="hidden">
+  <section class="grid2">
+    <div class="card"><h2>Frequency view</h2><div class="canvas-box dark"><canvas id="spectrumCanvas" width="256" height="256"></canvas></div></div>
+    <div class="card"><h2>Reconstructed image</h2><div class="canvas-box"><canvas id="reconCanvas" width="256" height="256"></canvas></div></div>
+  </section>
+
+  <section class="card" id="errorCard">
+    <h2>Error image</h2>
+    <div class="canvas-box"><canvas id="errorCanvas" width="256" height="256"></canvas></div>
+    <p class="hint">Brighter pixels show larger reconstruction error.</p>
+  </section>
+
+  <section class="card">
+    <h2>Metrics</h2>
+    <div class="grid4">
+      <div class="metric"><div class="k">Raw size</div><div class="v" id="rawSizeVal">—</div><div class="s">8-bit pixels</div></div>
+      <div class="metric"><div class="k">Estimate</div><div class="v" id="compressedSizeVal">—</div><div class="s">stored coefficients</div></div>
+      <div class="metric"><div class="k">Ratio</div><div class="v" id="ratioVal">—</div><div class="s">raw / estimate</div></div>
+      <div class="metric"><div class="k">Quality</div><div class="v" id="psnrVal">—</div><div class="s" id="mseVal">MSE —</div></div>
+    </div>
+    <div class="row" style="margin-top:14px"><span class="status">Kept coefficients <b id="keptVal">—</b></span><span class="status">Retained <b id="retainedVal">—</b></span></div>
+  </section>
+  </div>
+
+  <footer>Educational image compression demo · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+</div></main></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+const samples = [
+  {id:"gradient", label:"Smooth gradient"},
+  {id:"checker", label:"Checkerboard"},
+  {id:"text", label:"Text image"},
+  {id:"natural", label:"Natural-like"}
+];
+
+let sourceImage = null;
+let original = null;
+let reconstructed = null;
+let spectrumInfo = null;
+let activeSample = "text";
+
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function fmtBytes(v){
+  if(!Number.isFinite(v)) return "—";
+  if(v >= 1024*1024) return (v/1024/1024).toFixed(2)+" MB";
+  if(v >= 1024) return (v/1024).toFixed(1)+" KB";
+  return Math.round(v)+" B";
+}
+function channels(){ return $("colorSelect").value === "gray" ? 1 : 3; }
+function n(){ return +$("sizeSelect").value; }
+
+function fft(re, im, inverse=false){
+  const N = re.length;
+  for(let i=1,j=0;i<N;i++){
+    let bit=N>>1;
+    for(;j&bit;bit>>=1) j^=bit;
+    j^=bit;
+    if(i<j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; }
+  }
+  for(let len=2;len<=N;len<<=1){
+    const ang=(inverse?TAU:-TAU)/len, wr0=Math.cos(ang), wi0=Math.sin(ang);
+    for(let i=0;i<N;i+=len){
+      let wr=1, wi=0;
+      for(let j=0;j<len/2;j++){
+        const ar=re[i+j], ai=im[i+j];
+        const br=re[i+j+len/2]*wr - im[i+j+len/2]*wi;
+        const bi=re[i+j+len/2]*wi + im[i+j+len/2]*wr;
+        re[i+j]=ar+br; im[i+j]=ai+bi;
+        re[i+j+len/2]=ar-br; im[i+j+len/2]=ai-bi;
+        const nwr=wr*wr0-wi*wi0;
+        wi=wr*wi0+wi*wr0; wr=nwr;
+      }
+    }
+  }
+  if(inverse) for(let i=0;i<N;i++){ re[i]/=N; im[i]/=N; }
+}
+function fft2(re, im, N, inverse=false){
+  const tr=new Float64Array(N), ti=new Float64Array(N);
+  for(let y=0;y<N;y++){
+    const off=y*N;
+    for(let x=0;x<N;x++){ tr[x]=re[off+x]; ti[x]=im[off+x]; }
+    fft(tr,ti,inverse);
+    for(let x=0;x<N;x++){ re[off+x]=tr[x]; im[off+x]=ti[x]; }
+  }
+  for(let x=0;x<N;x++){
+    for(let y=0;y<N;y++){ tr[y]=re[y*N+x]; ti[y]=im[y*N+x]; }
+    fft(tr,ti,inverse);
+    for(let y=0;y<N;y++){ re[y*N+x]=tr[y]; im[y*N+x]=ti[y]; }
+  }
+}
+function fftChannel(data, N){
+  const re=new Float64Array(data), im=new Float64Array(N*N);
+  fft2(re,im,N,false);
+  return {re,im};
+}
+
+function drawToCanvas(canvas, img){
+  const ctx=canvas.getContext("2d"), N=img.n, ch=img.channels.length;
+  canvas.width=N; canvas.height=N;
+  const out=ctx.createImageData(N,N);
+  for(let i=0;i<N*N;i++){
+    if(ch===1){
+      const v=clamp(Math.round(img.channels[0][i]),0,255);
+      out.data[i*4]=v; out.data[i*4+1]=v; out.data[i*4+2]=v;
+    }else{
+      out.data[i*4]=clamp(Math.round(img.channels[0][i]),0,255);
+      out.data[i*4+1]=clamp(Math.round(img.channels[1][i]),0,255);
+      out.data[i*4+2]=clamp(Math.round(img.channels[2][i]),0,255);
+    }
+    out.data[i*4+3]=255;
+  }
+  ctx.putImageData(out,0,0);
+}
+function drawError(){
+  if(!original||!reconstructed) return;
+  const N=original.n, ctx=$("errorCanvas").getContext("2d");
+  $("errorCanvas").width=N; $("errorCanvas").height=N;
+  const out=ctx.createImageData(N,N), ch=original.channels.length;
+  for(let i=0;i<N*N;i++){
+    let err=0;
+    for(let c=0;c<ch;c++) err += Math.abs(original.channels[c][i]-reconstructed.channels[c][i]);
+    const v=clamp(Math.round(err/ch*4),0,255);
+    out.data[i*4]=v; out.data[i*4+1]=v; out.data[i*4+2]=v; out.data[i*4+3]=255;
+  }
+  ctx.putImageData(out,0,0);
+}
+function drawSpectrum(spec){
+  const canvas=$("spectrumCanvas"), ctx=canvas.getContext("2d"), N=spec.N;
+  canvas.width=N; canvas.height=N;
+  const out=ctx.createImageData(N,N);
+  let max=0;
+  for(let i=0;i<spec.mag.length;i++) max=Math.max(max, Math.log1p(spec.mag[i]));
+  for(let sy=0;sy<N;sy++){
+    for(let sx=0;sx<N;sx++){
+      const u=(sx+N/2)%N, v=(sy+N/2)%N, idx=v*N+u;
+      const q=max>0?Math.log1p(spec.mag[idx])/max:0;
+      const kept=spec.mask[idx];
+      const base=Math.round(255*Math.sqrt(q));
+      const p=(sy*N+sx)*4;
+      if(kept){ out.data[p]=Math.min(255,base+50); out.data[p+1]=Math.min(255,base+36); out.data[p+2]=base; }
+      else{ out.data[p]=Math.round(base*.23); out.data[p+1]=Math.round(base*.25); out.data[p+2]=Math.round(base*.32); }
+      out.data[p+3]=255;
+    }
+  }
+  ctx.putImageData(out,0,0);
+}
+
+function imageFromCanvas(canvas, name){
+  const N=n(), src=document.createElement("canvas"), sctx=src.getContext("2d");
+  src.width=N; src.height=N;
+  sctx.drawImage(canvas,0,0,N,N);
+  const pix=sctx.getImageData(0,0,N,N).data;
+  const ch=channels();
+  const arr=ch===1?[new Float32Array(N*N)]:[new Float32Array(N*N),new Float32Array(N*N),new Float32Array(N*N)];
+  for(let i=0;i<N*N;i++){
+    const r=pix[i*4], g=pix[i*4+1], b=pix[i*4+2];
+    if(ch===1) arr[0][i]=0.299*r+0.587*g+0.114*b;
+    else{ arr[0][i]=r; arr[1][i]=g; arr[2][i]=b; }
+  }
+  return {n:N, channels:arr, name};
+}
+function buildSample(id){
+  const N=n(), c=document.createElement("canvas"), ctx=c.getContext("2d");
+  c.width=N; c.height=N;
+  if(id==="gradient"){
+    const grad=ctx.createLinearGradient(0,0,N,N);
+    grad.addColorStop(0,"#243b73"); grad.addColorStop(.55,"#7cc6a6"); grad.addColorStop(1,"#f4d35e");
+    ctx.fillStyle=grad; ctx.fillRect(0,0,N,N);
+    ctx.fillStyle="rgba(255,255,255,.16)"; ctx.beginPath(); ctx.arc(N*.65,N*.38,N*.22,0,TAU); ctx.fill();
+  }else if(id==="checker"){
+    const s=N/16;
+    for(let y=0;y<16;y++) for(let x=0;x<16;x++){ ctx.fillStyle=(x+y)%2?"#111827":"#f8fafc"; ctx.fillRect(x*s,y*s,s,s); }
+    ctx.fillStyle="rgba(79,70,229,.35)"; ctx.fillRect(N*.2,N*.2,N*.6,N*.6);
+  }else if(id==="text"){
+    ctx.fillStyle="#f8fafc"; ctx.fillRect(0,0,N,N);
+    ctx.fillStyle="#1c2333"; ctx.font=`900 ${Math.floor(N*.18)}px system-ui`; ctx.textAlign="center"; ctx.fillText("CSE",N/2,N*.42); ctx.fillText("219",N/2,N*.62);
+    ctx.strokeStyle="#4f46e5"; ctx.lineWidth=Math.max(2,N/48); ctx.strokeRect(N*.13,N*.18,N*.74,N*.58);
+  }else{
+    const img=ctx.createImageData(N,N);
+    for(let y=0;y<N;y++){
+      for(let x=0;x<N;x++){
+        const i=(y*N+x)*4;
+        const sky=clamp(190-80*y/N+18*Math.sin(x*.05),0,255);
+        const hill= y > N*.54 + Math.sin(x*.04)*N*.06;
+        const hill2= y > N*.68 + Math.cos(x*.055)*N*.04;
+        img.data[i]=hill2?68:(hill?94:sky);
+        img.data[i+1]=hill2?95:(hill?135:sky+18);
+        img.data[i+2]=hill2?76:(hill?94:230);
+        img.data[i+3]=255;
+      }
+    }
+    ctx.putImageData(img,0,0);
+    ctx.fillStyle="rgba(255,235,160,.9)"; ctx.beginPath(); ctx.arc(N*.76,N*.22,N*.08,0,TAU); ctx.fill();
+  }
+  return imageFromCanvas(c, samples.find(s=>s.id===id).label);
+}
+function loadSample(id){
+  activeSample=id;
+  sourceImage=null;
+  original=buildSample(id);
+  document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c.dataset.id===id));
+  afterLoad();
+}
+async function loadUpload(file){
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement("canvas"), ctx=c.getContext("2d");
+    c.width=img.naturalWidth; c.height=img.naturalHeight;
+    ctx.drawImage(img,0,0);
+    sourceImage={canvas:c, name:file.name};
+    document.querySelectorAll(".chip").forEach(ch=>ch.classList.remove("on"));
+    original=imageFromCanvas(c,file.name);
+    URL.revokeObjectURL(url);
+    afterLoad();
+  };
+  img.src=url;
+}
+function reloadSource(){
+  if(sourceImage) original=imageFromCanvas(sourceImage.canvas,sourceImage.name);
+  else original=buildSample(activeSample);
+  afterLoad();
+}
+function afterLoad(){
+  drawToCanvas($("originalCanvas"),original);
+  $("sourceName").textContent=original.name;
+  $("sizeVal").textContent=`${original.n} x ${original.n}`;
+  resetResults("Choose settings, then press Compress.");
+}
+
+function resetResults(message="Settings changed. Press Compress to update."){
+  reconstructed=null;
+  spectrumInfo=null;
+  $("resultsWrap").classList.add("hidden");
+  $("downloadBtn").disabled=true;
+  $("statusVal").textContent=message;
+}
+
+function markCompressionStale(){
+  $("statusVal").textContent = reconstructed
+    ? "Settings changed. Press Compress to update the result."
+    : "Choose settings, then press Compress.";
+}
+
+function compress(){
+  if(!original) return;
+  const method=$("methodSelect").value;
+  $("resultsWrap").classList.remove("hidden");
+  $("statusVal").textContent="Working...";
+  setTimeout(()=>{
+    const result = method==="dct" ? compressDCT() : compressFourier();
+    reconstructed=result.image;
+    spectrumInfo=result.spectrum;
+    drawToCanvas($("reconCanvas"),reconstructed);
+    drawSpectrum(spectrumInfo);
+    drawError();
+    updateMetrics(result);
+    $("statusVal").textContent="Ready";
+    $("downloadBtn").disabled=false;
+  },0);
+}
+function compressFourier(){
+  const N=original.n, total=N*N, ch=original.channels.length;
+  const out=original.channels.map(()=>new Float32Array(total));
+  let displayMag=new Float64Array(total), displayMask=new Uint8Array(total), keptPerChannel=0;
+  for(let c=0;c<ch;c++){
+    const {re,im}=fftChannel(original.channels[c],N);
+    const mask=new Uint8Array(total);
+    const K=Math.max(1,Math.round(total*(+$("keepSlider").value)/100));
+    const mags=Array.from({length:total},(_,i)=>[Math.hypot(re[i],im[i]),i]);
+    mags.sort((a,b)=>b[0]-a[0]);
+    for(let i=0;i<K;i++){ mask[mags[i][1]]=1; keptPerChannel++; }
+    if(c===0){
+      for(let i=0;i<total;i++){ displayMag[i]=Math.hypot(re[i],im[i]); displayMask[i]=mask[i]; }
+    }
+    for(let i=0;i<total;i++) if(!mask[i]){ re[i]=0; im[i]=0; }
+    fft2(re,im,N,true);
+    for(let i=0;i<total;i++) out[c][i]=clamp(re[i],0,255);
+  }
+  keptPerChannel=Math.round(keptPerChannel/ch);
+  const coeffBytes=keptPerChannel*(8+4)*ch;
+  return {image:{n:N,channels:out,name:"Reconstructed"},spectrum:{N,mag:displayMag,mask:displayMask},kept:keptPerChannel,compressedBytes:coeffBytes};
+}
+
+const dctCos=Array.from({length:8},(_,u)=>Array.from({length:8},(_,x)=>Math.cos((2*x+1)*u*Math.PI/16)));
+const alpha=u=>u===0?1/Math.sqrt(8):Math.sqrt(2/8);
+function compressDCT(){
+  const N=original.n, total=N*N, ch=original.channels.length, q=+$("quantSlider").value;
+  const out=original.channels.map(()=>new Float32Array(total));
+  let nonzero=0, displayMag=new Float64Array(total), displayMask=new Uint8Array(total);
+  for(let c=0;c<ch;c++){
+    const src=original.channels[c], dst=out[c];
+    for(let by=0;by<N;by+=8) for(let bx=0;bx<N;bx+=8){
+      const C=Array.from({length:8},()=>new Float64Array(8));
+      for(let v=0;v<8;v++) for(let u=0;u<8;u++){
+        let sum=0;
+        for(let y=0;y<8;y++) for(let x=0;x<8;x++) sum+=(src[(by+y)*N+bx+x]-128)*dctCos[u][x]*dctCos[v][y];
+        const step=q*(1+u*u+v*v)/10;
+        const quant=Math.round(alpha(u)*alpha(v)*sum/step);
+        if(quant!==0) nonzero++;
+        C[v][u]=quant*step;
+        if(c===0){ const idx=(by+v)*N+bx+u; displayMag[idx]=Math.abs(C[v][u]); displayMask[idx]=quant!==0?1:0; }
+      }
+      for(let y=0;y<8;y++) for(let x=0;x<8;x++){
+        let sum=0;
+        for(let v=0;v<8;v++) for(let u=0;u<8;u++) sum+=alpha(u)*alpha(v)*C[v][u]*dctCos[u][x]*dctCos[v][y];
+        dst[(by+y)*N+bx+x]=clamp(sum+128,0,255);
+      }
+    }
+  }
+  const kept=Math.round(nonzero/ch);
+  return {image:{n:N,channels:out,name:"Reconstructed"},spectrum:{N,mag:displayMag,mask:displayMask},kept,compressedBytes:nonzero*2+16};
+}
+function updateMetrics(result){
+  const N=original.n, ch=original.channels.length, total=N*N*ch;
+  let mse=0;
+  for(let c=0;c<ch;c++) for(let i=0;i<N*N;i++){ const d=original.channels[c][i]-reconstructed.channels[c][i]; mse+=d*d; }
+  mse/=total;
+  const psnr=mse<=1e-12?Infinity:10*Math.log10(255*255/mse);
+  const raw=N*N*ch;
+  $("rawSizeVal").textContent=fmtBytes(raw);
+  $("compressedSizeVal").textContent=fmtBytes(result.compressedBytes);
+  $("ratioVal").textContent=(raw/Math.max(1,result.compressedBytes)).toFixed(2)+"x";
+  $("psnrVal").textContent=Number.isFinite(psnr)?psnr.toFixed(1)+" dB":"∞ dB";
+  $("mseVal").textContent="MSE "+mse.toFixed(2);
+  $("keptVal").textContent=result.kept.toLocaleString();
+  $("retainedVal").textContent=(result.kept/(N*N)*100).toFixed(2)+"%";
+}
+function syncUi(){
+  const method=$("methodSelect").value;
+  $("keepControl").style.opacity=method==="strongest"?"1":".38";
+  $("quantControl").style.opacity=method==="dct"?"1":".38";
+  $("keepSlider").disabled=method!=="strongest";
+  $("quantSlider").disabled=method!=="dct";
+  $("keepVal").textContent=(+$("keepSlider").value).toFixed(1)+"%";
+  $("quantVal").textContent=$("quantSlider").value;
+  $("errorCard").classList.toggle("hidden",!$("errorToggle").checked);
+  const hints={
+    strongest:"This mode keeps only the largest Fourier coefficients: the frequencies contributing the most energy.",
+    dct:"This simplified JPEG-like mode splits the image into 8 x 8 blocks and quantizes cosine coefficients."
+  };
+  $("methodHint").textContent=hints[method];
+}
+function downloadReconstruction(){
+  if(!reconstructed) return;
+  const canvas=$("reconCanvas");
+  const a=document.createElement("a");
+  a.href=canvas.toDataURL("image/png");
+  a.download="image-compression-reconstruction.png";
+  a.click();
+}
+function init(){
+  const box=$("sampleChips");
+  samples.forEach(s=>{ const b=document.createElement("button"); b.className="chip"; b.type="button"; b.dataset.id=s.id; b.textContent=s.label; b.addEventListener("click",()=>loadSample(s.id)); box.appendChild(b); });
+  $("uploadBtn").addEventListener("click",()=>$("fileInput").click());
+  $("fileInput").addEventListener("change",e=>{ if(e.target.files[0]) loadUpload(e.target.files[0]); });
+  $("resetBtn").addEventListener("click",()=>loadSample("text"));
+  $("downloadBtn").addEventListener("click",downloadReconstruction);
+  $("downloadBtn").disabled=true;
+  ["methodSelect"].forEach(id=>$(id).addEventListener("change",()=>{ syncUi(); markCompressionStale(); }));
+  ["colorSelect","sizeSelect"].forEach(id=>$(id).addEventListener("change",()=>{ syncUi(); reloadSource(); }));
+  ["keepSlider","quantSlider"].forEach(id=>$(id).addEventListener("input",()=>{ syncUi(); markCompressionStale(); }));
+  $("errorToggle").addEventListener("input",()=>{ syncUi(); if(reconstructed) drawError(); });
+  $("compressBtn").addEventListener("click",compress);
+  syncUi();
+  loadSample("text");
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>

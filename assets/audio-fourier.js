@@ -83,8 +83,7 @@
         name: item.name || item.file,
         url: new URL(item.file, base).href,
         start: Number.isFinite(+item.start) ? +item.start : 0,
-        end: Number.isFinite(+item.end) ? +item.end : null,
-        sizeBytes: Number.isFinite(+item.sizeBytes) ? +item.sizeBytes : null
+        end: Number.isFinite(+item.end) ? +item.end : null
       }));
   }
 

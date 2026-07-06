@@ -18,8 +18,8 @@
   .control{display:grid;grid-template-columns:140px 1fr 74px;align-items:center;gap:10px;margin:10px 0}.control label{font-size:13px;font-weight:700;color:#4b5563}.control input[type=range]{width:100%;accent-color:var(--accent)}.control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
   select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.in{background:var(--input);border-color:var(--input);color:#fff}.btn.out{background:var(--out);border-color:var(--out);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
-  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}
-  .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;touch-action:none}#originalWaveCanvas,#modifiedWaveCanvas{height:145px}#spectrumCanvas,#modifiedSpectrumCanvas{height:230px}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1}.asset-chip.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
+  .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;touch-action:none}#originalWaveCanvas,#modifiedWaveCanvas{height:145px}#spectrumCanvas,#modifiedSpectrumCanvas{height:230px}#spectrumCanvas{cursor:ew-resize}
   .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}.toggle input{accent-color:var(--accent)}
   .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta b{color:var(--ink);font-variant-numeric:tabular-nums}.hint{font-size:13px;color:var(--muted);margin:12px 2px 0}.hidden{display:none!important}
   footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
@@ -133,6 +133,7 @@ const samples = [
 ];
 let source = null, processed = null, draggingMarker = null;
 let audioAssets = [];
+let assetLoadToken = 0;
 const playbackIds = { original:"frequency-original", modified:"frequency-modified" };
 
 function cfg(){
@@ -152,24 +153,31 @@ function fmtTime(v){
   const m = Math.floor(v / 60), s = Math.round(v - m * 60);
   return m ? `${m}:${String(s).padStart(2,"0")}` : `${s}s`;
 }
-function fmtBytes(v){
-  if(!Number.isFinite(v)) return "";
-  return v >= 1024 * 1024 ? `${(v / 1024 / 1024).toFixed(1)} MB` : `${Math.round(v / 1024)} KB`;
-}
 function fmtSeconds(v){ return `${(v || 0).toFixed(2)} s`; }
 function assetLabel(asset){
   const range = Number.isFinite(asset.end) ? ` · ${fmtTime(asset.start)}-${fmtTime(asset.end)}` : "";
-  const size = asset.sizeBytes ? ` · ${fmtBytes(asset.sizeBytes)}` : "";
-  return `${asset.name}${range}${size}`;
+  return `${asset.name}${range}`;
 }
 function clearStoredAudioSelection(){
-  document.querySelectorAll(".asset-chip").forEach(c=>c.classList.remove("on"));
+  document.querySelectorAll(".asset-chip").forEach(c=>c.classList.remove("on","loading","done","error"));
   $("assetSelect").value = "";
 }
 function setStoredAudioSelection(assetId){
   document.querySelectorAll(".asset-chip").forEach(c=>c.classList.toggle("on", c.dataset.id === assetId));
   const select = $("assetSelect");
   select.value = Array.from(select.options).some(o=>o.value === assetId) ? assetId : "";
+}
+function setAssetLoadState(assetId, state){
+  document.querySelectorAll(".asset-chip").forEach(chip=>{
+    if(chip.dataset.id !== assetId) chip.classList.remove("loading","done","error");
+    else{
+      chip.classList.toggle("loading", state === "loading");
+      chip.classList.toggle("done", state === "done");
+      chip.classList.toggle("error", state === "error");
+      const marker = chip.querySelector(".asset-state");
+      if(marker) marker.textContent = state === "done" ? "✓" : state === "error" ? "!" : "";
+    }
+  });
 }
 function syncLabels(){
   let lo=+$("lowSlider").value, hi=+$("highSlider").value;
@@ -313,6 +321,7 @@ function sourceAnalysis(){
   return source._analysis;
 }
 function loadGenerated(id){
+  assetLoadToken++;
   DSP.stop();
   source = DSP.makeSample(id);
   source.name = samples.find(s=>s.id===id).label;
@@ -322,17 +331,22 @@ function loadGenerated(id){
   resetFrequencyControls();
   document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.id===id));
   clearStoredAudioSelection();
+  if(audioAssets.length > 3) $("assetSelect").disabled = false;
   render();
 }
 async function loadStoredAsset(assetId){
   const asset = audioAssets.find(a=>a.id===assetId);
   if(!asset) return;
+  const token = ++assetLoadToken;
   const select = $("assetSelect");
   select.disabled = true;
   $("sourceName").textContent = "Loading...";
+  setAssetLoadState(assetId, "loading");
   try{
     DSP.stop();
-    source = await DSP.decodeAsset(asset);
+    const decoded = await DSP.decodeAsset(asset);
+    if(token !== assetLoadToken) return;
+    source = decoded;
     if(source.assetWindow) source.name = `${source.name} (${fmtTime(source.assetWindow.start)}-${fmtTime(source.assetWindow.end)})`;
     processed = null;
     clearAnalysis();
@@ -341,11 +355,14 @@ async function loadStoredAsset(assetId){
     document.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
     setStoredAudioSelection(assetId);
     render();
+    setAssetLoadState(assetId, "done");
+    setTimeout(()=>{ if(token === assetLoadToken) setAssetLoadState(assetId, "idle"); }, 1000);
   }catch(err){
+    if(token === assetLoadToken) setAssetLoadState(assetId, "error");
     $("assetHint").textContent = err.message || "Could not load stored audio.";
     select.value = "";
   }finally{
-    select.disabled = false;
+    if(token === assetLoadToken) select.disabled = false;
   }
 }
 async function initAudioAssets(){
@@ -370,6 +387,7 @@ async function initAudioAssets(){
       button.className = "chip asset-chip";
       button.dataset.id = asset.id;
       button.textContent = asset.name;
+      button.appendChild(Object.assign(document.createElement("span"), {className:"asset-state"}));
       button.title = assetLabel(asset);
       button.addEventListener("click",()=>loadStoredAsset(asset.id));
       quick.appendChild(button);
@@ -394,6 +412,7 @@ async function initAudioAssets(){
   }
 }
 async function loadUpload(file){
+  assetLoadToken++;
   DSP.stop();
   source = await DSP.decodeFile(file);
   processed = null;
@@ -402,6 +421,7 @@ async function loadUpload(file){
   resetFrequencyControls();
   document.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
   clearStoredAudioSelection();
+  if(audioAssets.length > 3) $("assetSelect").disabled = false;
   render();
 }
 function applyEdit(){
