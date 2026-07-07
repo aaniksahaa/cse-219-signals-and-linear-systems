@@ -22,7 +22,7 @@
       { href: "listening-to-convolution.html", icon: "🎧", label: "Listening to Convolutions" },
       { group: "Fourier Series" },
       { href: "fourier-vibrating-string.html", icon: "〰️", label: "Vibrating String" },
-      { href: "fourier-heat-diffusion.html", icon: "🔥", label: "Heat Diffusion" },
+      { href: "fourier-heat-diffusion.html", icon: "∂", label: "Heat Diffusion" },
       { href: "fourier-epicycles-1d.html", icon: "🌀", label: "1D Epicycles" },
       { href: "fourier-epicycles-2d.html", icon: "✒️", label: "2D Epicycles" },
       // { group: "Fourier Transform" },
