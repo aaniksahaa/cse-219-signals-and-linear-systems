@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>🩺 Noise Surgery · CSE 219</title>
+<title>🩺 Noise Cancellation · CSE 219</title>
 <link rel="stylesheet" href="assets/site.css" />
 <script src="assets/site.js" defer></script>
 <script src="assets/audio-fourier.js"></script>
@@ -15,7 +15,7 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.grid2>* ,.grid3>*{min-width:0}
   .control{display:grid;grid-template-columns:140px 1fr 74px;align-items:center;gap:10px;margin:10px 0}.control label{font-size:13px;font-weight:700;color:#4b5563}.control input[type=range]{width:100%;accent-color:var(--accent)}.control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
   select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.btn.clean{background:var(--clean);border-color:var(--clean);color:#fff}.btn.noisy{background:var(--noisy);border-color:var(--noisy);color:#fff}.btn.fixed{background:var(--fixed);border-color:var(--fixed);color:#fff}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
-  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1}.asset-chip.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.asset-quick{display:contents}.asset-select-chip{width:100%;min-height:39px;padding:9px 28px 9px 10px;border-radius:12px;text-align:center;text-align-last:center}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1}.asset-chip.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
   .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;touch-action:none}#originalWaveCanvas,#noisyWaveCanvas,#cleanedWaveCanvas{height:155px}#originalSpectrumCanvas,#noisySpectrumCanvas,#cleanedSpectrumCanvas{height:240px}#noisyWaveCanvas,#noisySpectrumCanvas{cursor:ew-resize}.toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}.toggle input{accent-color:var(--accent)}
   .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta b{color:var(--ink);font-variant-numeric:tabular-nums}.hint{font-size:13px;color:var(--muted);margin:12px 2px 0}.hidden{display:none!important}footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
   @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}.control{grid-template-columns:1fr;gap:6px}.control .val{text-align:left}}
@@ -23,7 +23,7 @@
 </head>
 <body>
 <div class="site"><aside class="sidebar" id="siteSidebar"></aside><main class="content"><div class="wrap">
-  <header class="app"><div class="title"><h1>🩺 Noise Surgery</h1><p>Start with a clean signal, add a high-frequency burst for a chosen time interval, then modify the noisy audio by cutting a chosen frequency range.</p></div></header>
+  <header class="app"><div class="title"><h1>🩺 Noise Cancellation</h1><p>Start with a clean signal, add a high-frequency burst for a chosen time interval, then modify the noisy audio by cutting a chosen frequency range.</p></div></header>
 
   <section class="card"><h2>1. Original signal</h2>
     <div class="grid2">
@@ -34,14 +34,13 @@
       </div>
     </div>
     <div style="margin-top:16px">
-      <label class="toggle" style="display:block;margin-bottom:8px">Stored audio</label>
-      <div class="chips" id="assetQuick"></div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn hidden" id="assetMore" type="button">More...</button>
-        <select class="hidden" id="assetSelect"><option value="">Loading stored audio...</option></select>
+      <label class="toggle" style="display:block;margin-bottom:8px">Stored Audio Clips</label>
+      <div class="asset-line">
+        <div class="asset-quick" id="assetQuick"></div>
+        <select class="hidden" id="assetSelect"><option value="">Loading stored audio clips...</option></select>
       </div>
     </div>
-    <p class="hint" id="assetHint">Choose a generated sound, stored MP3, or uploaded audio. Stored MP3s and uploads are loaded only after selection.</p>
+    <p class="hint" id="assetHint">Choose a generated sound, stored audio clip, or uploaded audio. Stored audio clips and uploads are loaded only after selection.</p>
     <div class="wave-wrap" style="margin-top:14px"><canvas id="originalWaveCanvas" height="155"></canvas></div>
     <div class="row" style="margin-top:14px"><button class="btn clean" id="playClean">▶ Original</button><button class="btn" id="pauseClean" disabled>⏸ Pause</button><button class="btn" id="stopBtn">⏹ Stop</button><span class="meta"><span>Position <b id="cleanPos">0.00 s</b></span></span></div>
   </section>
@@ -86,7 +85,7 @@
     </div>
   </section>
 
-  <footer>Noise removal with Fourier analysis · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+  <footer>Noise cancellation with Fourier analysis · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.<br>We use short audio clips instead of full tracks to respect copyright.</footer>
 </div></main></div>
 
 <script>
@@ -382,7 +381,7 @@ async function loadStoredAsset(assetId){
     setTimeout(()=>{if(token===assetLoadToken)setAssetLoadState(assetId,"idle");},1000);
   }catch(err){
     if(token===assetLoadToken)setAssetLoadState(assetId,"error");
-    $("assetHint").textContent=err.message||"Could not load stored audio.";
+    $("assetHint").textContent=err.message||"Could not load stored audio clip.";
     select.value="";
   }finally{
     if(token===assetLoadToken)select.disabled=false;
@@ -391,14 +390,13 @@ async function loadStoredAsset(assetId){
 async function initAudioAssets(){
   const select=$("assetSelect");
   const quick=$("assetQuick");
-  const more=$("assetMore");
   try{
     audioAssets=await DSP.loadAudioLibrary();
     if(!audioAssets.length){
-      quick.innerHTML=`<div class="hint" style="margin:0">No stored audio found.</div>`;
-      select.innerHTML=`<option value="">No stored audio found</option>`;
+      quick.innerHTML=`<div class="hint" style="margin:0">No stored audio clips found.</div>`;
+      select.innerHTML=`<option value="">No stored audio clips found</option>`;
       select.disabled=true;
-      more.classList.add("hidden");
+      select.classList.add("hidden");
       return;
     }
     const visibleAssets=audioAssets.slice(0,3);
@@ -416,33 +414,27 @@ async function initAudioAssets(){
       quick.appendChild(button);
     });
     if(extraAssets.length){
-      select.innerHTML=`<option value="">Choose more stored MP3...</option>`+
+      select.className="chip asset-select-chip";
+      select.innerHTML=`<option value="">More...</option>`+
         extraAssets.map(a=>`<option value="${a.id}">${assetLabel(a)}</option>`).join("");
       select.disabled=false;
-      more.classList.remove("hidden");
     }else{
-      select.innerHTML=`<option value="">No more stored audio</option>`;
+      select.innerHTML=`<option value="">No more stored audio clips</option>`;
       select.disabled=true;
-      more.classList.add("hidden");
       select.classList.add("hidden");
     }
   }catch(err){
     quick.innerHTML="";
-    select.innerHTML=`<option value="">Stored audio unavailable</option>`;
+    select.innerHTML=`<option value="">Stored audio clips unavailable</option>`;
     select.disabled=true;
-    more.classList.add("hidden");
-    $("assetHint").textContent=err.message||"Stored audio unavailable.";
+    select.classList.add("hidden");
+    $("assetHint").textContent=err.message||"Stored audio clips unavailable.";
   }
 }
 function init(){
   const box=$("sampleChips"); presets.forEach(p=>{const c=document.createElement("div");c.className="chip";c.dataset.id=p.id;c.textContent=p.label;c.addEventListener("click",()=>load(p.id));box.appendChild(c);});
   $("uploadBtn").addEventListener("click",()=>$("fileInput").click());
   $("fileInput").addEventListener("change",e=>{if(e.target.files[0])loadUpload(e.target.files[0]);});
-  $("assetMore").addEventListener("click",()=>{
-    const select=$("assetSelect");
-    select.classList.toggle("hidden");
-    $("assetMore").textContent=select.classList.contains("hidden")?"More...":"Hide";
-  });
   $("assetSelect").addEventListener("change",e=>{if(e.target.value)loadStoredAsset(e.target.value);});
   ["freqSlider","ampSlider"].forEach(id=>$(id).addEventListener("input",markNoisePending));
   $("noisyWaveCanvas").addEventListener("pointerdown",beginNoiseWindowDrag);

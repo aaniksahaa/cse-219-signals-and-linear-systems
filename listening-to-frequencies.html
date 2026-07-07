@@ -18,7 +18,7 @@
   .control{display:grid;grid-template-columns:140px 1fr 74px;align-items:center;gap:10px;margin:10px 0}.control label{font-size:13px;font-weight:700;color:#4b5563}.control input[type=range]{width:100%;accent-color:var(--accent)}.control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
   select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.in{background:var(--input);border-color:var(--input);color:#fff}.btn.out{background:var(--out);border-color:var(--out);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
-  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1}.asset-chip.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.asset-quick{display:contents}.asset-select-chip{width:100%;min-height:39px;padding:9px 28px 9px 10px;border-radius:12px;text-align:center;text-align-last:center}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1}.asset-chip.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
   .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;touch-action:none}#originalWaveCanvas,#modifiedWaveCanvas{height:145px}#spectrumCanvas,#modifiedSpectrumCanvas{height:230px}#spectrumCanvas{cursor:ew-resize}
   .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}.toggle input{accent-color:var(--accent)}
   .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta b{color:var(--ink);font-variant-numeric:tabular-nums}.hint{font-size:13px;color:var(--muted);margin:12px 2px 0}.hidden{display:none!important}
@@ -47,14 +47,13 @@
         </div>
       </div>
       <div style="margin-top:16px">
-        <label class="toggle" style="display:block;margin-bottom:8px">Stored audio</label>
-        <div class="chips" id="assetQuick"></div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn hidden" id="assetMore" type="button">More...</button>
-          <select class="hidden" id="assetSelect"><option value="">Loading stored audio...</option></select>
+        <label class="toggle" style="display:block;margin-bottom:8px">Stored Audio Clips</label>
+        <div class="asset-line">
+          <div class="asset-quick" id="assetQuick"></div>
+          <select class="hidden" id="assetSelect"><option value="">Loading stored audio clips...</option></select>
         </div>
       </div>
-      <p class="hint" id="assetHint">Generated sounds are used by default. Stored MP3s and uploaded audio are loaded only after selection.</p>
+      <p class="hint" id="assetHint">Generated sounds are used by default. Stored audio clips and uploaded audio are loaded only after selection.</p>
     </section>
 
     <section class="card">
@@ -96,7 +95,6 @@
         <div class="control"><label for="startSlider">Segment start</label><input id="startSlider" type="range" min="0" max="1" step="0.01" value="0" /><span class="val" id="startVal">0.00 s</span></div>
         <div class="control"><label for="endSlider">Segment end</label><input id="endSlider" type="range" min="0" max="1" step="0.01" value="1" /><span class="val" id="endVal">1.00 s</span></div>
       </div>
-      <div class="row" style="margin-top:8px"><button class="btn" id="fullSegmentBtn">Use full file</button></div>
       <div class="row" style="margin-top:12px"><button class="btn primary" id="applyBtn">Apply frequency edit</button><span class="meta"><span>Band <b id="bandVal">300–3000 Hz</b></span><span>Segment <b id="segmentVal">0.00–1.00 s</b></span></span></div>
     </section>
 
@@ -118,7 +116,7 @@
       </div>
     </section>
 
-    <footer>Frequency-domain audio editing · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+    <footer>Frequency-domain audio editing · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.<br>We use short audio clips instead of full tracks to respect copyright.</footer>
   </div></main>
 </div>
 
@@ -215,13 +213,12 @@ function resetSegmentControls(){
   if(!source) return;
   const dur = fullDuration();
   const step = Math.max(0.01, dur / 2000);
-  const end = Math.min(dur, Math.max(1, Math.min(30, dur)));
   ["startSlider","endSlider"].forEach(id=>{
     $(id).max = dur.toFixed(3);
     $(id).step = step.toFixed(3);
   });
   $("startSlider").value = "0";
-  $("endSlider").value = end.toFixed(3);
+  $("endSlider").value = dur.toFixed(3);
 }
 function resetFrequencyControls(){
   if(!source) return;
@@ -359,7 +356,7 @@ async function loadStoredAsset(assetId){
     setTimeout(()=>{ if(token === assetLoadToken) setAssetLoadState(assetId, "idle"); }, 1000);
   }catch(err){
     if(token === assetLoadToken) setAssetLoadState(assetId, "error");
-    $("assetHint").textContent = err.message || "Could not load stored audio.";
+    $("assetHint").textContent = err.message || "Could not load stored audio clip.";
     select.value = "";
   }finally{
     if(token === assetLoadToken) select.disabled = false;
@@ -368,14 +365,13 @@ async function loadStoredAsset(assetId){
 async function initAudioAssets(){
   const select = $("assetSelect");
   const quick = $("assetQuick");
-  const more = $("assetMore");
   try{
     audioAssets = await DSP.loadAudioLibrary();
     if(!audioAssets.length){
-      quick.innerHTML = `<div class="hint" style="margin:0">No stored audio found.</div>`;
-      select.innerHTML = `<option value="">No stored audio found</option>`;
+      quick.innerHTML = `<div class="hint" style="margin:0">No stored audio clips found.</div>`;
+      select.innerHTML = `<option value="">No stored audio clips found</option>`;
       select.disabled = true;
-      more.classList.add("hidden");
+      select.classList.add("hidden");
       return;
     }
     const visibleAssets = audioAssets.slice(0, 3);
@@ -393,22 +389,21 @@ async function initAudioAssets(){
       quick.appendChild(button);
     });
     if(extraAssets.length){
-      select.innerHTML = `<option value="">Choose more stored MP3...</option>` +
+      select.className = "chip asset-select-chip";
+      select.innerHTML = `<option value="">More...</option>` +
         extraAssets.map(a=>`<option value="${a.id}">${assetLabel(a)}</option>`).join("");
       select.disabled = false;
-      more.classList.remove("hidden");
     }else{
-      select.innerHTML = `<option value="">No more stored audio</option>`;
+      select.innerHTML = `<option value="">No more stored audio clips</option>`;
       select.disabled = true;
-      more.classList.add("hidden");
       select.classList.add("hidden");
     }
   }catch(err){
     quick.innerHTML = "";
-    select.innerHTML = `<option value="">Stored audio unavailable</option>`;
+    select.innerHTML = `<option value="">Stored audio clips unavailable</option>`;
     select.disabled = true;
-    more.classList.add("hidden");
-    $("assetHint").textContent = err.message || "Stored audio unavailable.";
+    select.classList.add("hidden");
+    $("assetHint").textContent = err.message || "Stored audio clips unavailable.";
   }
 }
 async function loadUpload(file){
@@ -453,16 +448,10 @@ function init(){
   samples.forEach(s=>{const c=document.createElement("div");c.className="chip";c.dataset.id=s.id;c.textContent=s.label;c.addEventListener("click",()=>loadGenerated(s.id));box.appendChild(c);});
   $("uploadBtn").addEventListener("click",()=>$("fileInput").click());
   $("fileInput").addEventListener("change",e=>{if(e.target.files[0])loadUpload(e.target.files[0]);});
-  $("assetMore").addEventListener("click",()=>{
-    const select = $("assetSelect");
-    select.classList.toggle("hidden");
-    $("assetMore").textContent = select.classList.contains("hidden") ? "More..." : "Hide";
-  });
   $("assetSelect").addEventListener("change",e=>{if(e.target.value)loadStoredAsset(e.target.value);});
   $("resetBtn").addEventListener("click",()=>{clearStoredAudioSelection();loadGenerated("pluck");});
   ["operationSelect","lowSlider","highSlider","gainSlider","softSlider","invertToggle"].forEach(id=>$(id).addEventListener("input",()=>{invalidateProcessed();syncLabels();render();}));
   ["startSlider","endSlider"].forEach(id=>$(id).addEventListener("input",()=>{invalidateProcessed();clearAnalysis();syncLabels();render();}));
-  $("fullSegmentBtn").addEventListener("click",()=>{if(!source)return;$("startSlider").value="0";$("endSlider").value=fullDuration().toFixed(3);invalidateProcessed();clearAnalysis();syncLabels();render();});
   $("applyBtn").addEventListener("click",applyEdit);
   $("playOriginal").addEventListener("click",()=>source&&playTracked("original",source.data,source.sr));
   $("playModified").addEventListener("click",()=>processed&&playTracked("modified",processed.data,source.sr));

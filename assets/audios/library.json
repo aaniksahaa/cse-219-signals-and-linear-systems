@@ -20,6 +20,27 @@
       "file": "Spirited Away - Always with me.mp3",
       "start": 0,
       "end": 24
+    },
+    {
+      "id": "maroon-5-memories",
+      "name": "Maroon 5 - Memories",
+      "file": "Maroon 5 - Memories.mp3",
+      "start": 0,
+      "end": 32.04
+    },
+    {
+      "id": "knaan-wavin-flag",
+      "name": "K'NAAN - Wavin' Flag",
+      "file": "K'NAAN - Wavin' Flag.mp3",
+      "start": 0,
+      "end": 60.024
+    },
+    {
+      "id": "cristina-perry-a-thousand-years",
+      "name": "Cristina Perry - A Thousand Years",
+      "file": "Cristina Perry - A Thousand Years.mp3",
+      "start": 0,
+      "end": 50.04
     }
   ]
 }

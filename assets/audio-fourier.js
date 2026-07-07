@@ -115,7 +115,7 @@
       for (let i = a; i < b; i++) out[i - a] += src[i] / buf.numberOfChannels;
     }
     const decoded = {
-      name: asset.name || asset.file || "Stored audio",
+      name: asset.name || asset.file || "Stored audio clip",
       sr,
       data: normalize(out),
       assetWindow: { start, end, fullDuration, file: asset.file || asset.url }
