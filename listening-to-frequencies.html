@@ -18,7 +18,7 @@
   .control{display:grid;grid-template-columns:140px 1fr 74px;align-items:center;gap:10px;margin:10px 0}.control label{font-size:13px;font-weight:700;color:#4b5563}.control input[type=range]{width:100%;accent-color:var(--accent)}.control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
   select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px;font-weight:700}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.in{background:var(--input);border-color:var(--input);color:#fff}.btn.out{background:var(--out);border-color:var(--out);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
-  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.asset-quick{display:contents}.asset-select-chip{width:100%;min-height:39px;padding:9px 28px 9px 10px;border-radius:12px;text-align:center;text-align-last:center}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1}.asset-chip.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer}.chip.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}.asset-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px}.asset-quick{display:contents}.asset-select-wrap{position:relative;min-width:0}.asset-select-chip{width:100%;min-height:39px;padding:9px 42px 9px 10px;border-radius:12px;text-align:center;text-align-last:center}.asset-chip{position:relative;padding-right:32px}.asset-state{position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:50%;display:none;place-items:center;font-size:12px;line-height:1;pointer-events:none}.asset-select-wrap .asset-state{right:28px}.asset-chip.loading .asset-state,.asset-select-wrap.loading .asset-state{display:block;border:2px solid #d1d5db;border-top-color:var(--accent);animation:assetSpin .75s linear infinite}.asset-chip.done .asset-state,.asset-select-wrap.done .asset-state{display:grid;background:#059669;color:#fff;font-weight:900}.asset-chip.error .asset-state,.asset-select-wrap.error .asset-state{display:grid;background:#dc2626;color:#fff;font-weight:900}@keyframes assetSpin{to{transform:rotate(360deg)}}
   .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;touch-action:none}#originalWaveCanvas,#modifiedWaveCanvas{height:145px}#spectrumCanvas,#modifiedSpectrumCanvas{height:230px}#spectrumCanvas{cursor:ew-resize}
   .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}.toggle input{accent-color:var(--accent)}
   .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta b{color:var(--ink);font-variant-numeric:tabular-nums}.hint{font-size:13px;color:var(--muted);margin:12px 2px 0}.hidden{display:none!important}
@@ -50,7 +50,10 @@
         <label class="toggle" style="display:block;margin-bottom:8px">Stored Audio Clips</label>
         <div class="asset-line">
           <div class="asset-quick" id="assetQuick"></div>
-          <select class="hidden" id="assetSelect"><option value="">Loading stored audio clips...</option></select>
+          <div class="asset-select-wrap hidden" id="assetSelectWrap">
+            <select id="assetSelect"><option value="">Loading stored audio clips...</option></select>
+            <span class="asset-state" id="assetSelectState"></span>
+          </div>
         </div>
       </div>
       <p class="hint" id="assetHint">Generated sounds are used by default. Stored audio clips and uploaded audio are loaded only after selection.</p>
@@ -159,6 +162,7 @@ function assetLabel(asset){
 function clearStoredAudioSelection(){
   document.querySelectorAll(".asset-chip").forEach(c=>c.classList.remove("on","loading","done","error"));
   $("assetSelect").value = "";
+  setAssetSelectState("idle");
 }
 function setStoredAudioSelection(assetId){
   document.querySelectorAll(".asset-chip").forEach(c=>c.classList.toggle("on", c.dataset.id === assetId));
@@ -166,6 +170,13 @@ function setStoredAudioSelection(assetId){
   select.value = Array.from(select.options).some(o=>o.value === assetId) ? assetId : "";
 }
 function setAssetLoadState(assetId, state){
+  const select = $("assetSelect");
+  const selectHasAsset = Array.from(select.options).some(o=>o.value === assetId);
+  const selectWrap = $("assetSelectWrap");
+  selectWrap.classList.toggle("loading", selectHasAsset && state === "loading");
+  selectWrap.classList.toggle("done", selectHasAsset && state === "done");
+  selectWrap.classList.toggle("error", selectHasAsset && state === "error");
+  $("assetSelectState").textContent = state === "done" ? "✓" : state === "error" ? "!" : "";
   document.querySelectorAll(".asset-chip").forEach(chip=>{
     if(chip.dataset.id !== assetId) chip.classList.remove("loading","done","error");
     else{
@@ -176,6 +187,13 @@ function setAssetLoadState(assetId, state){
       if(marker) marker.textContent = state === "done" ? "✓" : state === "error" ? "!" : "";
     }
   });
+}
+function setAssetSelectState(state){
+  const wrap = $("assetSelectWrap");
+  wrap.classList.toggle("loading", state === "loading");
+  wrap.classList.toggle("done", state === "done");
+  wrap.classList.toggle("error", state === "error");
+  $("assetSelectState").textContent = state === "done" ? "✓" : state === "error" ? "!" : "";
 }
 function syncLabels(){
   let lo=+$("lowSlider").value, hi=+$("highSlider").value;
@@ -364,6 +382,7 @@ async function loadStoredAsset(assetId){
 }
 async function initAudioAssets(){
   const select = $("assetSelect");
+  const selectWrap = $("assetSelectWrap");
   const quick = $("assetQuick");
   try{
     audioAssets = await DSP.loadAudioLibrary();
@@ -371,7 +390,7 @@ async function initAudioAssets(){
       quick.innerHTML = `<div class="hint" style="margin:0">No stored audio clips found.</div>`;
       select.innerHTML = `<option value="">No stored audio clips found</option>`;
       select.disabled = true;
-      select.classList.add("hidden");
+      selectWrap.classList.add("hidden");
       return;
     }
     const visibleAssets = audioAssets.slice(0, 3);
@@ -393,16 +412,17 @@ async function initAudioAssets(){
       select.innerHTML = `<option value="">More...</option>` +
         extraAssets.map(a=>`<option value="${a.id}">${assetLabel(a)}</option>`).join("");
       select.disabled = false;
+      selectWrap.classList.remove("hidden");
     }else{
       select.innerHTML = `<option value="">No more stored audio clips</option>`;
       select.disabled = true;
-      select.classList.add("hidden");
+      selectWrap.classList.add("hidden");
     }
   }catch(err){
     quick.innerHTML = "";
     select.innerHTML = `<option value="">Stored audio clips unavailable</option>`;
     select.disabled = true;
-    select.classList.add("hidden");
+    selectWrap.classList.add("hidden");
     $("assetHint").textContent = err.message || "Stored audio clips unavailable.";
   }
 }

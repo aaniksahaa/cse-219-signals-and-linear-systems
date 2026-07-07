@@ -1,69 +1,81 @@
-# CSE 219 · Signals & Linear Systems — Interactive Demos
+# CSE 219 · Signals & Linear Systems
 
-A tiny, dependency-free **static course website** that hosts in-browser
-visualizations for CSE 219. It's built to be served for free on **GitHub Pages**
-— there is no backend, no build step, and no data is ever saved or sent anywhere.
+A static course website for interactive Signals and Linear Systems demos. The
+site is built from plain HTML, CSS, and JavaScript, so it runs entirely in the
+browser with no backend, no build step, and no package install.
 
+The pages are meant for course use: students can open a demo, manipulate the
+signals visually, and hear or see the result locally in their browser. Uploaded
+or recorded data stays on the user's machine.
 
-## Pages
+## Run Locally
 
-| File | What it is |
-|------|------------|
-| `index.html` | Course home — hero + cards linking to each demo. |
-| `listening-to-convolution.html` | **Convolution & LTI Systems** demo: pick a system by its impulse response h[n] and hear y = x ∗ h. |
-| `listening-to-frequencies.html` | **Frequency Scissors** demo: edit audio by cutting, boosting, attenuating, or isolating selected frequency bands with STFT processing. |
-| `noise-surgery.html` | **Noise Cancellation** demo: inject tonal or burst frequency noise, locate it in spectrum/spectrogram views, and remove it. |
-| `fourier-vibrating-string.html` | **Fourier Series & Vibrating String** demo: draw an initial string shape, decompose it into sine modes, and animate the ideal fixed-end string. |
-| `fourier-heat-diffusion.html` | **Fourier Series & Heat Diffusion** demo: draw an initial temperature profile, decompose it into heat modes, and watch diffusion smooth it. |
-| `fourier-epicycles-1d.html` | **Fourier Series 1D Epicycles** demo: build periodic waveforms by adding rotating complex Fourier coefficient vectors. |
-| `fourier-epicycles-2d.html` | **Fourier Drawing Epicycles** demo: rebuild closed 2D curves with complex Fourier coefficients and rotating vectors. |
-| `assets/site.css` | Shared styles for the site shell (sidebar + layout). |
-| `assets/audio-fourier.js` | Shared FFT/STFT, generated sample audio, playback, waveform, spectrum, and spectrogram helpers. |
-| `assets/site.js` | **Single source of truth for the sidebar** — brand, nav links, footer. |
-| `.nojekyll` | Tells GitHub Pages to serve files as-is (no Jekyll processing). |
+The quickest option is to open `index.html` directly in a browser.
 
-The sidebar is rendered from `assets/site.js`, so you edit the brand / menu / footer
-in **one place** and every page updates. Each page only contains the placeholder
-`<aside class="sidebar" id="siteSidebar"></aside>` and loads `assets/site.js`; the
-active menu item is detected automatically from the page's filename.
+For features that need a secure browser context, such as microphone recording,
+serve the folder over `localhost`:
 
-To add a new demo: create another `*.html` page (placeholder aside + the two
-`assets/…` includes), then add one line to the `nav` array in `assets/site.js`.
+```bash
+./serve.sh
+```
 
-## Run locally
+Then open:
 
-It's plain static files — no build, no dependencies.
+```text
+http://localhost:8000
+```
 
-- **Quickest:** open `index.html` in a browser.
-- **For microphone recording** in the convolution demo, browsers require a *secure
-  context*, which `file://` is not. Serve over `localhost` instead:
+You can also choose a different port:
 
-  ```bash
-  python3 -m http.server 8000      # then open http://localhost:8000
-  # or:  ./serve.sh
-  ```
+```bash
+./serve.sh 9000
+```
 
-## Host free on GitHub Pages
+## Project Structure
 
-1. Put these files at the repo root (or in a `/docs` folder).
-2. Push to GitHub.
-3. Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-   pick your branch and `/ (root)` (or `/docs`), Save.
-4. Your site goes live at `https://<user>.github.io/<repo>/`.
+```text
+.
+├── index.html                  # Home page with links to demos
+├── *.html                      # Individual interactive demo pages
+├── assets/
+│   ├── site.css                # Shared site shell and layout styles
+│   ├── site.js                 # Shared sidebar, navigation, and footer
+│   ├── audio-fourier.js        # Shared browser-side audio/DSP helpers
+│   └── audios/
+│       ├── library.json        # Audio clip manifest
+│       └── *.mp3               # Stored audio clips
+├── docs/                       # Supporting notes
+├── ref/                        # Reference source files
+├── favicon.svg
+└── serve.sh                    # Local static server helper
+```
 
-`index.html` is served automatically as the landing page. Everything (audio decode,
-convolution, playback) runs client-side, so Pages' static hosting is all you need.
+## Editing The Site
 
-## The convolution demo
+The sidebar is generated from `assets/site.js`. Update the brand, navigation
+links, or footer there and every page using the shared sidebar will pick it up.
 
-- **Two systems**, both impulse trains of equally-spaced echoes:
-  - **Exponential Decay** — each echo a fraction α weaker, so it fades (stable).
-  - **Unit Step** — equal repeated echoes; in the limit it's not absolutely
-    summable, i.e. not BIBO stable (the contrast is the teaching point).
-- Input: built-in sounds, file upload, or microphone recording.
-- Live impulse-response plot, formula, and a Σ|h[n]| / BIBO-stability badge.
-- **Convolve & Listen** auto-plays the output; A/B switch to compare Input vs Output;
-  output gain, normalize toggle, clipping warning, and WAV download.
-- Convolution uses the Web Audio API's `OfflineAudioContext` + `ConvolverNode` with
-  `normalize = false`, giving **exact linear** y = x ∗ h (native FFT speed) — which is
-  what makes the stability/amplitude demonstrations mathematically truthful.
+Each demo page should include:
+
+```html
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<aside class="sidebar" id="siteSidebar"></aside>
+```
+
+Audio pages use `assets/audio-fourier.js` for shared playback, waveform,
+spectrum, FFT/STFT, and audio-library helpers. Stored clips are listed in
+`assets/audios/library.json`.
+
+## Deployment
+
+The site can be hosted on any static file host. For GitHub Pages:
+
+1. Push the files to a GitHub repository.
+2. Open repository Settings -> Pages.
+3. Choose "Deploy from a branch."
+4. Select the branch and folder containing `index.html`.
+5. Save.
+
+No server-side runtime is required; `index.html` is the landing page and all
+interactivity runs client-side.
