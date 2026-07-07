@@ -38,8 +38,6 @@
   .btn:disabled{opacity:.45;cursor:not-allowed}
   .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
   .toggle input{accent-color:var(--accent)}
-  .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  .equation b{color:var(--ink)}
   .wave-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
   canvas{display:block;width:100%;touch-action:none}
   #heatCanvas{height:320px}
@@ -157,15 +155,6 @@
         </div>
         <div class="wave-wrap"><canvas id="componentsCanvas" height="340"></canvas></div>
         <p class="hint">These are the largest non-constant Fourier components, stacked separately so their decay is visible.</p>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="equation" id="equationBox">
-        <b>Insulated rod:</b>
-        u<sub>N</sub>(x,t)=a<sub>0</sub>/2+
-        Σ<sub>n=1</sub><sup>N</sup>
-        a<sub>n</sub>e<sup>-κ(nπ/L)²t</sup>cos(nπx/L).
       </div>
     </section>
 
@@ -593,14 +582,6 @@ function reset(){
   state.t = 0;
   drawAll();
 }
-function updateEquation(){
-  if(state.boundary === "insulated"){
-    $("equationBox").innerHTML = "<b>Insulated rod:</b> u<sub>N</sub>(x,t)=a<sub>0</sub>/2+Σ<sub>n=1</sub><sup>N</sup>a<sub>n</sub>e<sup>-κ(nπ/L)²t</sup>cos(nπx/L). The constant mode is the conserved average.";
-  }else{
-    $("equationBox").innerHTML = "<b>Cold-end rod:</b> u<sub>N</sub>(x,t)=Σ<sub>n=1</sub><sup>N</sup>b<sub>n</sub>e<sup>-κ(nπ/L)²t</sup>sin(nπx/L). Every mode decays, so the rod approaches zero temperature.";
-  }
-}
-
 function init(){
   const select = $("presetSelect");
   presets.forEach(p => {
@@ -618,7 +599,6 @@ function init(){
     enforceBoundary(shape);
     state.t = 0;
     computeCoefficients();
-    updateEquation();
     drawAll();
   });
   $("kappaSlider").addEventListener("input", e => {
@@ -661,7 +641,6 @@ function init(){
   canvas.addEventListener("pointermove", moveDraw);
   window.addEventListener("pointerup", endDraw);
   window.addEventListener("resize", drawAll);
-  updateEquation();
   loadPreset("left");
 }
 document.addEventListener("DOMContentLoaded", init);
