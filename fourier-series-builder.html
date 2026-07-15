@@ -14,9 +14,9 @@
     --radius:16px;
   }
   *{box-sizing:border-box}
-  html,body{overflow-x:hidden}
   body{background:var(--bg);color:var(--ink)}
   .site,.content,.wrap{min-width:0}
+  .content{overflow-x:hidden}
   .wrap{width:100%;max-width:1180px;margin:0 auto;padding:28px 20px 80px}
   header.app{margin-bottom:22px}
   .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
@@ -35,6 +35,10 @@
   .btn:hover{border-color:#cdd2e0;background:#fafbff}
   .btn:active{transform:translateY(1px)}
   .btn.primary,.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  /* Sound feature disabled for now.
+  .btn.small{padding:7px 10px;border-radius:9px;font-size:12.5px}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  */
   .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
   .toggle input{accent-color:var(--accent)}
   .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-wrap:anywhere}
@@ -42,6 +46,10 @@
   .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
   .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
   .hint{font-size:13px;color:var(--muted);margin:12px 2px 0}
+  /* Sound feature disabled for now.
+  .audio-status{font-size:13px;color:#374151;font-weight:700;min-height:20px}
+  .audio-status.muted{color:var(--muted);font-weight:600}
+  */
   .coeff-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch}
   .coeff-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:15px;min-width:0;overflow:hidden}
   .coeff-card.k0{grid-column:2 / span 2}
@@ -54,6 +62,10 @@
   .coeff-name{font-size:18px;font-weight:800;letter-spacing:-.01em}
   .coeff-tag{font-size:11.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-align:right}
   .coeff-value{font-size:13px;color:#374151;font-weight:800;font-variant-numeric:tabular-nums;margin-top:8px}
+  /* Sound feature disabled for now.
+  .coeff-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .coeff-audio-note{font-size:12.5px;color:var(--muted);font-weight:700}
+  */
   .coeff-card input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
   .mini-wrap{height:126px;border:1px solid var(--line);border-radius:10px;background:#fbfcff;margin-top:12px;overflow:hidden}
   canvas{display:block;width:100%;touch-action:none}
@@ -113,17 +125,18 @@
         <div>
           <div class="control">
             <label for="omegaSlider">&omega;<sub>0</sub></label>
-            <input id="omegaSlider" type="range" min="0.5" max="3" step="0.1" value="1" />
-            <span class="val" id="omegaVal">1.0</span>
+            <input id="omegaSlider" type="range" min="1" max="5" step="0.1" value="3" />
+            <span class="val" id="omegaVal">3.0</span>
           </div>
-          <div class="meta"><span>period T <b id="periodVal">6.28</b></span><span>phase &theta; <b id="phaseVal">0.00</b></span></div>
+          <div class="meta"><span>period T <b id="periodVal">2.09</b></span><span>phase &theta; <b id="phaseVal">0.00</b></span></div>
         </div>
         <div>
-          <label class="toggle"><input id="realLockToggle" type="checkbox" checked /> Keep output real</label>
+          <label class="toggle"><input id="realLockToggle" type="checkbox" /> Keep output real</label>
           <p class="hint">With the lock on, mirrored coefficients stay equal: a<sub>-k</sub> = a<sub>k</sub>.</p>
         </div>
       </div>
       <div class="row" style="margin-top:14px">
+        <button class="btn" data-preset="mix">Random mix</button>
         <button class="btn" data-preset="zero">Zero signal</button>
         <button class="btn" data-preset="constant">Constant</button>
         <button class="btn" data-preset="cosine">Simple cosine</button>
@@ -137,6 +150,32 @@
       <h2>Fourier coefficients</h2>
       <div class="coeff-grid" id="coeffGrid"></div>
     </section>
+
+    <!-- Sound feature disabled for now.
+    <section class="card">
+      <h2>Listen to the series</h2>
+      <div class="grid3">
+        <div class="equation">
+          Audio uses the real part of the series. The page maps &omega;<sub>0</sub> to an audible pitch f<sub>0</sub> = 110&omega;<sub>0</sub> Hz.
+        </div>
+        <div>
+          <div class="control">
+            <label for="volumeSlider">Volume</label>
+            <input id="volumeSlider" type="range" min="0" max="100" step="1" value="35" />
+            <span class="val" id="volumeVal">35%</span>
+          </div>
+          <div class="meta"><span>fundamental f<sub>0</sub> <b id="audioF0Val">330 Hz</b></span></div>
+        </div>
+        <div>
+          <div class="row">
+            <button class="btn primary" id="playTotalBtn">▶ Play total wave</button>
+            <button class="btn" id="stopAudioBtn" disabled>Stop</button>
+          </div>
+          <p class="audio-status muted" id="audioStatus">a<sub>0</sub> is DC, so it changes level but does not make a pitch.</p>
+        </div>
+      </div>
+    </section>
+    -->
 
     <section class="grid2">
       <div class="card">
@@ -174,6 +213,9 @@
 const $ = id => document.getElementById(id);
 const ks = [-2, -1, 0, 1, 2];
 const order = [-2, -1, 0, 1, 2];
+const TIME_WINDOW = 4 * Math.PI;
+// Sound feature disabled for now.
+// const AUDIO_HZ_PER_OMEGA = 110;
 const colors = {
   pos: "#059669",
   neg: "#ea580c",
@@ -185,14 +227,23 @@ const colors = {
   muted: "#6b7280"
 };
 const state = {
-  omega: 1,
-  realLock: true,
-  activePreset: "cosine",
-  coeffs: new Map([[-2,0],[-1,.5],[0,0],[1,.5],[2,0]]),
+  omega: 3,
+  realLock: false,
+  activePreset: "mix",
+  coeffs: new Map([[-2,-1],[-1,2],[0,.5],[1,1],[2,-1.5]]),
   start: performance.now(),
   raf: null
 };
 const coeffEls = new Map();
+/* Sound feature disabled for now.
+const audioState = {
+  ctx: null,
+  master: null,
+  nodes: [],
+  active: null,
+  volume: .35
+};
+*/
 
 function coeffColor(k){
   return k > 0 ? colors.pos : k < 0 ? colors.neg : colors.zero;
@@ -222,6 +273,8 @@ function setCoeff(k, value, syncMirror = true){
   updateControlReadouts();
   updatePresetButtons();
   drawStaticPlots();
+  // Sound feature disabled for now.
+  // refreshActiveAudio();
 }
 function setAll(values){
   for(const k of ks) state.coeffs.set(k, values[k] || 0);
@@ -231,6 +284,8 @@ function setAll(values){
   }
   updateControlReadouts();
   drawStaticPlots();
+  // Sound feature disabled for now.
+  // refreshActiveAudio();
 }
 function valueAt(theta){
   let re = 0, im = 0;
@@ -247,6 +302,126 @@ function termsAt(theta){
     return {k, re: a * Math.cos(k * theta), im: a * Math.sin(k * theta)};
   });
 }
+/* Sound feature disabled for now.
+function audioBaseHz(){
+  return AUDIO_HZ_PER_OMEGA * state.omega;
+}
+function hasAudio(){
+  return Boolean(window.AudioContext || window.webkitAudioContext);
+}
+async function ensureAudio(){
+  if(!hasAudio()){
+    setAudioStatus("This browser does not support Web Audio.", true);
+    return false;
+  }
+  if(!audioState.ctx){
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    audioState.ctx = new AudioCtx();
+    audioState.master = audioState.ctx.createGain();
+    audioState.master.gain.value = audioState.volume;
+    audioState.master.connect(audioState.ctx.destination);
+  }
+  if(audioState.ctx.state === "suspended") await audioState.ctx.resume();
+  return true;
+}
+function setAudioStatus(text, muted = false){
+  const status = $("audioStatus");
+  if(!status) return;
+  status.textContent = text;
+  status.classList.toggle("muted", muted);
+}
+function setAudioButtons(){
+  const stop = $("stopAudioBtn");
+  const total = $("playTotalBtn");
+  if(stop) stop.disabled = !audioState.active;
+  if(total){
+    const active = audioState.active && audioState.active.type === "total";
+    total.classList.toggle("active", active);
+    total.classList.toggle("primary", !active);
+    total.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+  for(const [k, els] of coeffEls){
+    if(!els.audioBtn) continue;
+    const active = audioState.active && audioState.active.type === "term" && audioState.active.k === k;
+    els.audioBtn.classList.toggle("active", active);
+    els.audioBtn.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+function stopAudio(keepStatus = false){
+  if(audioState.ctx){
+    const now = audioState.ctx.currentTime;
+    for(const node of audioState.nodes){
+      try{
+        node.gain.gain.cancelScheduledValues(now);
+        node.gain.gain.setTargetAtTime(0, now, .015);
+        node.source.stop(now + .08);
+      }catch(err){}
+    }
+  }
+  audioState.nodes = [];
+  audioState.active = null;
+  if(!keepStatus) setAudioStatus("Stopped.", true);
+  setAudioButtons();
+}
+function makeTone(freq, signedGain){
+  const now = audioState.ctx.currentTime;
+  const source = audioState.ctx.createOscillator();
+  const gain = audioState.ctx.createGain();
+  source.type = "sine";
+  source.frequency.value = freq;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(signedGain, now + .035);
+  source.connect(gain).connect(audioState.master);
+  source.start(now);
+  audioState.nodes.push({source, gain});
+}
+async function playTerm(k){
+  const a = coeffValue(k);
+  stopAudio(true);
+  if(k === 0){
+    setAudioStatus("a0 is DC: it shifts the level, but it has no sustained pitch to play.", true);
+    setAudioButtons();
+    return;
+  }
+  if(Math.abs(a) < 1e-6){
+    setAudioStatus(`a${k} is zero, so this term is silent.`, true);
+    setAudioButtons();
+    return;
+  }
+  if(!await ensureAudio()) return;
+  const freq = Math.abs(k) * audioBaseHz();
+  makeTone(freq, .42 * Math.sign(a) * Math.min(1, Math.abs(a) / 2));
+  audioState.active = {type: "term", k};
+  setAudioStatus(`Playing a${k}: ${Math.round(freq)} Hz, amplitude ${Math.abs(a).toFixed(1)}.`, false);
+  setAudioButtons();
+}
+async function playTotal(){
+  stopAudio(true);
+  const harmonic1 = coeffValue(1) + coeffValue(-1);
+  const harmonic2 = coeffValue(2) + coeffValue(-2);
+  const peak = Math.abs(harmonic1) + Math.abs(harmonic2);
+  if(peak < 1e-6){
+    const dc = Math.abs(coeffValue(0)) > 1e-6 ? " Only a0/DC is nonzero." : "";
+    setAudioStatus(`${dc} There is no audible oscillating part to play.`, true);
+    setAudioButtons();
+    return;
+  }
+  if(!await ensureAudio()) return;
+  const scale = .62 / Math.max(1, peak);
+  const f0 = audioBaseHz();
+  if(Math.abs(harmonic1) > 1e-6) makeTone(f0, harmonic1 * scale);
+  if(Math.abs(harmonic2) > 1e-6) makeTone(2 * f0, harmonic2 * scale);
+  audioState.active = {type: "total"};
+  setAudioStatus(`Playing total wave: f0 ${Math.round(f0)} Hz. a0/DC is not sent as a pitch.`, false);
+  setAudioButtons();
+}
+function refreshActiveAudio(){
+  if(!audioState.active) return;
+  const active = {...audioState.active};
+  if(active.type === "term") playTerm(active.k);
+  else playTotal();
+}
+*/
 function setupCanvas(canvas){
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -353,9 +528,9 @@ function drawWave(thetaNow){
   const pad = {l:46, r:18, t:24, b:38};
   const pw = w - pad.l - pad.r;
   const ph = h - pad.t - pad.b;
-  const minY = -4.5, maxY = 4.5;
+  const minY = -6, maxY = 6;
   const yMap = y => pad.t + (maxY - y) / (maxY - minY) * ph;
-  const xMap = th => pad.l + th / (4 * Math.PI) * pw;
+  const xMap = t => pad.l + t / TIME_WINDOW * pw;
   line(ctx, pad.l, yMap(0), w - pad.r, yMap(0), "#d7dbe5", 1.5);
   line(ctx, pad.l, pad.t, pad.l, h - pad.b, "#d7dbe5", 1.5);
   ctx.strokeStyle = "#eef0f5";
@@ -365,28 +540,29 @@ function drawWave(thetaNow){
     line(ctx, pad.l, yMap(y), w - pad.r, yMap(y), "#eef0f5", 1);
   }
   for(let i=0;i<=4;i++){
-    const th = i * Math.PI;
-    const x = xMap(th);
+    const t = i * TIME_WINDOW / 4;
+    const x = xMap(t);
     line(ctx, x, pad.t, x, h - pad.b, "#eef0f5", 1);
     ctx.fillStyle = colors.muted;
     ctx.font = "12px system-ui, sans-serif";
     const label = i === 0 ? "0" : i === 1 ? "pi" : `${i}pi`;
-    ctx.fillText(label, x - 8, h - 15);
+    ctx.fillText(label, x - (i === 4 ? 18 : 8), h - 15);
   }
   ctx.beginPath();
   for(let i=0;i<=420;i++){
-    const th = i / 420 * 4 * Math.PI;
-    const p = valueAt(th);
-    const x = xMap(th), y = yMap(p.re);
+    const t = i / 420 * TIME_WINDOW;
+    const p = valueAt(state.omega * t);
+    const x = xMap(t), y = yMap(p.re);
     if(i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.strokeStyle = colors.wave;
   ctx.lineWidth = 3;
   ctx.stroke();
-  const markerTheta = ((thetaNow % (4 * Math.PI)) + 4 * Math.PI) % (4 * Math.PI);
-  const marker = valueAt(markerTheta);
-  const mx = xMap(markerTheta), my = yMap(marker.re);
+  const elapsed = thetaNow / state.omega;
+  const markerTime = ((elapsed % TIME_WINDOW) + TIME_WINDOW) % TIME_WINDOW;
+  const marker = valueAt(state.omega * markerTime);
+  const mx = xMap(markerTime), my = yMap(marker.re);
   line(ctx, mx, pad.t, mx, h - pad.b, colors.sum, 1.5);
   ctx.fillStyle = colors.sum;
   ctx.beginPath();
@@ -394,7 +570,6 @@ function drawWave(thetaNow){
   ctx.fill();
   ctx.fillStyle = colors.muted;
   ctx.font = "12px system-ui, sans-serif";
-  ctx.fillText("theta = omega0 t", w - 138, h - 15);
   ctx.save();
   ctx.translate(15, 92);
   ctx.rotate(-Math.PI / 2);
@@ -453,11 +628,23 @@ function animate(){
 function updateControlReadouts(){
   $("omegaVal").textContent = state.omega.toFixed(1);
   $("periodVal").textContent = (2 * Math.PI / state.omega).toFixed(2);
+  // Sound feature disabled for now.
+  // $("audioF0Val").textContent = `${Math.round(audioBaseHz())} Hz`;
+  // $("volumeVal").textContent = `${Math.round(audioState.volume * 100)}%`;
   for(const [k, els] of coeffEls){
     const v = coeffValue(k);
     els.input.value = String(v);
     els.value.innerHTML = `a<sub>${k}</sub> = ${v.toFixed(1)}`;
+    /*
+    Sound feature disabled for now.
+    if(els.audioBtn){
+      els.audioBtn.disabled = k !== 0 && Math.abs(v) < 1e-6;
+      els.note.textContent = k === 0 ? "DC: no pitch" : `${Math.round(Math.abs(k) * audioBaseHz())} Hz`;
+    }
+    */
   }
+  // Sound feature disabled for now.
+  // setAudioButtons();
 }
 function buildCoeffCards(){
   const grid = $("coeffGrid");
@@ -473,18 +660,30 @@ function buildCoeffCards(){
       </div>
       <input type="range" min="-2" max="2" step="0.5" value="${coeffValue(k)}" aria-label="a ${k}" />
       <div class="coeff-value">a<sub>${k}</sub> = ${coeffValue(k).toFixed(1)}</div>
+      <!-- Sound feature disabled for now.
+      <div class="coeff-actions">
+        <button class="btn small" data-play-term="${k}" type="button">${k === 0 ? "DC note" : "▶ Play term"}</button>
+        <span class="coeff-audio-note"></span>
+      </div>
+      -->
       <div class="mini-wrap"><canvas height="126"></canvas></div>
     `;
     grid.appendChild(card);
     const input = card.querySelector("input");
     const value = card.querySelector(".coeff-value");
     const canvas = card.querySelector("canvas");
+    // Sound feature disabled for now.
+    // const audioBtn = card.querySelector("[data-play-term]");
+    // const note = card.querySelector(".coeff-audio-note");
     coeffEls.set(k, {input, value, canvas});
     input.addEventListener("input", () => setCoeff(k, input.value));
+    // Sound feature disabled for now.
+    // audioBtn.addEventListener("click", () => playTerm(k));
   }
 }
 function applyPreset(name){
   const presets = {
+    mix: {"-2":-1, "-1":2, 0:.5, 1:1, 2:-1.5},
     zero: {"-2":0, "-1":0, 0:0, 1:0, 2:0},
     constant: {"-2":0, "-1":0, 0:1, 1:0, 2:0},
     cosine: {"-2":0, "-1":.5, 0:0, 1:.5, 2:0},
@@ -508,7 +707,18 @@ function init(){
   $("omegaSlider").addEventListener("input", e => {
     state.omega = Number(e.target.value);
     updateControlReadouts();
+    drawStaticPlots();
+    // Sound feature disabled for now.
+    // refreshActiveAudio();
   });
+  /*
+  Sound feature disabled for now.
+  $("volumeSlider").addEventListener("input", e => {
+    audioState.volume = Number(e.target.value) / 100;
+    if(audioState.master) audioState.master.gain.value = audioState.volume;
+    updateControlReadouts();
+  });
+  */
   $("realLockToggle").addEventListener("change", e => {
     state.realLock = e.target.checked;
     if(state.realLock){
@@ -517,7 +727,14 @@ function init(){
     }
     updateControlReadouts();
     drawStaticPlots();
+    // Sound feature disabled for now.
+    // refreshActiveAudio();
   });
+  /*
+  Sound feature disabled for now.
+  $("playTotalBtn").addEventListener("click", playTotal);
+  $("stopAudioBtn").addEventListener("click", () => stopAudio());
+  */
   document.querySelectorAll("[data-preset]").forEach(btn => {
     btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
   });
