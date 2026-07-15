@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fourier Series Builder · CSE 219</title>
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --muted:#6b7280; --line:#e6e8ef;
+    --accent:#4f46e5; --wave:#2563eb; --pos:#059669; --neg:#ea580c; --zero:#64748b; --sum:#7c3aed;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{background:var(--bg);color:var(--ink)}
+  .site,.content,.wrap{min-width:0}
+  .wrap{width:100%;max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  header.app{margin-bottom:22px}
+  .title h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  .title p{margin:5px 0 0;color:var(--muted);font-size:14.5px;max-width:820px;overflow-wrap:anywhere}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:12px;margin:0 0 14px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:1.05fr 1fr 1fr;gap:14px}
+  .grid2 > *,.grid3 > *{min-width:0}
+  .control{display:grid;grid-template-columns:132px 1fr 88px;align-items:center;gap:10px;margin:10px 0}
+  .control label{font-size:13px;font-weight:700;color:#4b5563}
+  .control input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
+  .control .val{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);text-align:right}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-width:0}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 13px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:#cdd2e0;background:#fafbff}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary,.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--accent)}
+  .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-wrap:anywhere}
+  .equation b{color:var(--ink)}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .hint{font-size:13px;color:var(--muted);margin:12px 2px 0}
+  .coeff-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch}
+  .coeff-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:15px;min-width:0;overflow:hidden}
+  .coeff-card.k0{grid-column:2 / span 2}
+  .coeff-card.k1,.coeff-card.k2{grid-column:1 / span 2}
+  .coeff-card.kneg1,.coeff-card.kneg2{grid-column:3 / span 2}
+  .coeff-card.positive{border-top:4px solid var(--pos)}
+  .coeff-card.negative{border-top:4px solid var(--neg)}
+  .coeff-card.zero{border-top:4px solid var(--zero)}
+  .coeff-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .coeff-name{font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .coeff-tag{font-size:11.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-align:right}
+  .coeff-value{font-size:13px;color:#374151;font-weight:800;font-variant-numeric:tabular-nums;margin-top:8px}
+  .coeff-card input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
+  .mini-wrap{height:126px;border:1px solid var(--line);border-radius:10px;background:#fbfcff;margin-top:12px;overflow:hidden}
+  canvas{display:block;width:100%;touch-action:none}
+  .mini-wrap canvas{height:126px}
+  .plot-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  #sumCanvas{height:330px}
+  #waveCanvas{height:330px}
+  #spectrumCanvas{height:210px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 2px 0;font-size:13px;color:#374151}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:18px;height:4px;border-radius:2px;display:inline-block}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+  @media(max-width:1040px){
+    .coeff-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .coeff-card.k0{grid-column:1 / -1}
+    .coeff-card.k1,.coeff-card.k2,.coeff-card.kneg1,.coeff-card.kneg2{grid-column:auto}
+  }
+  @media(max-width:860px){
+    .grid2,.grid3{grid-template-columns:1fr}
+    .control{grid-template-columns:1fr;gap:6px}
+    .control input[type=range]{min-width:0}
+    .control .val{text-align:left}
+  }
+  @media(max-width:600px){
+    .wrap{padding-left:16px;padding-right:16px}
+    .card{padding:18px 16px}
+    .btn{justify-content:center}
+    .row .btn{flex:1 1 132px}
+    .coeff-head{align-items:flex-start;flex-direction:column;gap:4px}
+    .coeff-tag{text-align:left}
+    .coeff-grid{grid-template-columns:1fr}
+    .coeff-card.k0,.coeff-card.k1,.coeff-card.k2,.coeff-card.kneg1,.coeff-card.kneg2{grid-column:auto}
+    #sumCanvas,#waveCanvas{height:290px}
+  }
+</style>
+</head>
+<body>
+<div class="site">
+  <aside class="sidebar" id="siteSidebar"></aside>
+
+  <main class="content">
+  <div class="wrap">
+    <header class="app">
+      <div class="title">
+        <h1>Fourier Series Builder</h1>
+        <p>Build a periodic signal by adjusting its Fourier coefficients. Each coefficient is one rotating complex exponential, and the plotted signal is the real part of their sum.</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Model controls</h2>
+      <div class="grid3">
+        <div class="equation">
+          <b>x(t)</b> = &Sigma;<sub>k=-2</sub><sup>2</sup> a<sub>k</sub>e<sup>jk&omega;<sub>0</sub>t</sup>,
+          plotting Re{x(t)}.
+        </div>
+        <div>
+          <div class="control">
+            <label for="omegaSlider">&omega;<sub>0</sub></label>
+            <input id="omegaSlider" type="range" min="0.5" max="3" step="0.1" value="1" />
+            <span class="val" id="omegaVal">1.0</span>
+          </div>
+          <div class="meta"><span>period T <b id="periodVal">6.28</b></span><span>phase &theta; <b id="phaseVal">0.00</b></span></div>
+        </div>
+        <div>
+          <label class="toggle"><input id="realLockToggle" type="checkbox" checked /> Keep output real</label>
+          <p class="hint">With the lock on, mirrored coefficients stay equal: a<sub>-k</sub> = a<sub>k</sub>.</p>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" data-preset="zero">Zero signal</button>
+        <button class="btn" data-preset="constant">Constant</button>
+        <button class="btn" data-preset="cosine">Simple cosine</button>
+        <button class="btn" data-preset="strong">Stronger cosine</button>
+        <button class="btn" data-preset="harmonics">First + second harmonic</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Fourier coefficients</h2>
+      <div class="coeff-grid" id="coeffGrid"></div>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <h2>Vector sum</h2>
+        <div class="plot-wrap"><canvas id="sumCanvas" height="330"></canvas></div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--neg)"></i> negative frequency</span>
+          <span><i class="swatch" style="background:var(--pos)"></i> positive frequency</span>
+          <span><i class="swatch" style="background:var(--sum)"></i> endpoint x(t)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Reconstructed waveform</h2>
+        <div class="plot-wrap"><canvas id="waveCanvas" height="330"></canvas></div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--wave)"></i> Re{x(t)}</span>
+          <span><i class="swatch" style="background:var(--sum)"></i> current sample</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Coefficient spectrum</h2>
+      <div class="plot-wrap"><canvas id="spectrumCanvas" height="210"></canvas></div>
+      <p class="hint">Bars show the real slider values for k = -2, -1, 0, 1, 2.</p>
+    </section>
+
+    <footer>Fourier series builder · CSE 219 Signals &amp; Linear Systems · runs entirely in your browser.</footer>
+  </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const ks = [-2, -1, 0, 1, 2];
+const order = [-2, -1, 0, 1, 2];
+const colors = {
+  pos: "#059669",
+  neg: "#ea580c",
+  zero: "#64748b",
+  wave: "#2563eb",
+  sum: "#7c3aed",
+  grid: "#e6e8ef",
+  ink: "#1c2333",
+  muted: "#6b7280"
+};
+const state = {
+  omega: 1,
+  realLock: true,
+  activePreset: "cosine",
+  coeffs: new Map([[-2,0],[-1,.5],[0,0],[1,.5],[2,0]]),
+  start: performance.now(),
+  raf: null
+};
+const coeffEls = new Map();
+
+function coeffColor(k){
+  return k > 0 ? colors.pos : k < 0 ? colors.neg : colors.zero;
+}
+function coeffClass(k){
+  return k > 0 ? "positive" : k < 0 ? "negative" : "zero";
+}
+function coeffGridClass(k){
+  return k < 0 ? `kneg${Math.abs(k)}` : `k${k}`;
+}
+function directionLabel(k){
+  if(k > 0) return "counterclockwise";
+  if(k < 0) return "clockwise";
+  return "static";
+}
+function subName(k){
+  return `a<sub>${k}</sub>`;
+}
+function coeffValue(k){
+  return state.coeffs.get(k) || 0;
+}
+function setCoeff(k, value, syncMirror = true){
+  const v = Math.max(-2, Math.min(2, Number(value)));
+  state.coeffs.set(k, v);
+  if(syncMirror && state.realLock && k !== 0) state.coeffs.set(-k, v);
+  state.activePreset = null;
+  updateControlReadouts();
+  updatePresetButtons();
+  drawStaticPlots();
+}
+function setAll(values){
+  for(const k of ks) state.coeffs.set(k, values[k] || 0);
+  if(state.realLock){
+    state.coeffs.set(-1, coeffValue(1));
+    state.coeffs.set(-2, coeffValue(2));
+  }
+  updateControlReadouts();
+  drawStaticPlots();
+}
+function valueAt(theta){
+  let re = 0, im = 0;
+  for(const k of ks){
+    const a = coeffValue(k);
+    re += a * Math.cos(k * theta);
+    im += a * Math.sin(k * theta);
+  }
+  return {re, im};
+}
+function termsAt(theta){
+  return order.map(k => {
+    const a = coeffValue(k);
+    return {k, re: a * Math.cos(k * theta), im: a * Math.sin(k * theta)};
+  });
+}
+function setupCanvas(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(rect.width * dpr));
+  const h = Math.max(1, Math.round(rect.height * dpr));
+  if(canvas.width !== w || canvas.height !== h){
+    canvas.width = w;
+    canvas.height = h;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx, w: rect.width, h: rect.height};
+}
+function clear(ctx, w, h){
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, w, h);
+}
+function line(ctx, x1, y1, x2, y2, color, width = 1){
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+function drawArrow(ctx, x1, y1, x2, y2, color, width = 3){
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  line(ctx, x1, y1, x2, y2, color, width);
+  if(len < 5) return;
+  const head = Math.min(11, Math.max(7, len * .22));
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - head * Math.cos(angle - Math.PI / 7), y2 - head * Math.sin(angle - Math.PI / 7));
+  ctx.lineTo(x2 - head * Math.cos(angle + Math.PI / 7), y2 - head * Math.sin(angle + Math.PI / 7));
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+function drawMini(canvas, k, theta){
+  const {ctx, w, h} = setupCanvas(canvas);
+  clear(ctx, w, h);
+  const cx = w / 2, cy = h / 2;
+  const r = Math.min(w, h) * .34;
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  line(ctx, cx - r - 8, cy, cx + r + 8, cy, "#eef0f5", 1);
+  line(ctx, cx, cy - r - 8, cx, cy + r + 8, "#eef0f5", 1);
+  const a = coeffValue(k);
+  const x = cx + r * (a / 2) * Math.cos(k * theta);
+  const y = cy - r * (a / 2) * Math.sin(k * theta);
+  drawArrow(ctx, cx, cy, x, y, coeffColor(k), 3);
+  ctx.fillStyle = coeffColor(k);
+  ctx.beginPath();
+  ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+function drawSum(theta){
+  const canvas = $("sumCanvas");
+  const {ctx, w, h} = setupCanvas(canvas);
+  clear(ctx, w, h);
+  const cx = w / 2, cy = h / 2;
+  const scale = Math.min(w, h) / 8.2;
+  for(let g=-4;g<=4;g++){
+    const x = cx + g * scale;
+    const y = cy + g * scale;
+    line(ctx, x, 24, x, h - 30, g === 0 ? "#d7dbe5" : "#eef0f5", g === 0 ? 1.5 : 1);
+    line(ctx, 28, y, w - 24, y, g === 0 ? "#d7dbe5" : "#eef0f5", g === 0 ? 1.5 : 1);
+  }
+  ctx.strokeStyle = "#eef0f5";
+  ctx.lineWidth = 1.2;
+  for(let r=1;r<=4;r++){
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  let x = cx, y = cy;
+  for(const term of termsAt(theta)){
+    const nx = x + term.re * scale;
+    const ny = y - term.im * scale;
+    drawArrow(ctx, x, y, nx, ny, coeffColor(term.k), 3);
+    x = nx; y = ny;
+  }
+  ctx.fillStyle = colors.sum;
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.setLineDash([5, 5]);
+  line(ctx, x, y, x, cy, colors.sum, 1.5);
+  ctx.setLineDash([]);
+  ctx.fillStyle = colors.muted;
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("Re", w - 42, cy - 8);
+  ctx.fillText("Im", cx + 8, 22);
+}
+function drawWave(thetaNow){
+  const canvas = $("waveCanvas");
+  const {ctx, w, h} = setupCanvas(canvas);
+  clear(ctx, w, h);
+  const pad = {l:46, r:18, t:24, b:38};
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+  const minY = -4.5, maxY = 4.5;
+  const yMap = y => pad.t + (maxY - y) / (maxY - minY) * ph;
+  const xMap = th => pad.l + th / (4 * Math.PI) * pw;
+  line(ctx, pad.l, yMap(0), w - pad.r, yMap(0), "#d7dbe5", 1.5);
+  line(ctx, pad.l, pad.t, pad.l, h - pad.b, "#d7dbe5", 1.5);
+  ctx.strokeStyle = "#eef0f5";
+  ctx.lineWidth = 1;
+  for(let y=-4;y<=4;y++){
+    if(y === 0) continue;
+    line(ctx, pad.l, yMap(y), w - pad.r, yMap(y), "#eef0f5", 1);
+  }
+  for(let i=0;i<=4;i++){
+    const th = i * Math.PI;
+    const x = xMap(th);
+    line(ctx, x, pad.t, x, h - pad.b, "#eef0f5", 1);
+    ctx.fillStyle = colors.muted;
+    ctx.font = "12px system-ui, sans-serif";
+    const label = i === 0 ? "0" : i === 1 ? "pi" : `${i}pi`;
+    ctx.fillText(label, x - 8, h - 15);
+  }
+  ctx.beginPath();
+  for(let i=0;i<=420;i++){
+    const th = i / 420 * 4 * Math.PI;
+    const p = valueAt(th);
+    const x = xMap(th), y = yMap(p.re);
+    if(i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = colors.wave;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  const markerTheta = ((thetaNow % (4 * Math.PI)) + 4 * Math.PI) % (4 * Math.PI);
+  const marker = valueAt(markerTheta);
+  const mx = xMap(markerTheta), my = yMap(marker.re);
+  line(ctx, mx, pad.t, mx, h - pad.b, colors.sum, 1.5);
+  ctx.fillStyle = colors.sum;
+  ctx.beginPath();
+  ctx.arc(mx, my, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = colors.muted;
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("theta = omega0 t", w - 138, h - 15);
+  ctx.save();
+  ctx.translate(15, 92);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText("Re{x(t)}", 0, 0);
+  ctx.restore();
+}
+function drawSpectrum(){
+  const canvas = $("spectrumCanvas");
+  const {ctx, w, h} = setupCanvas(canvas);
+  clear(ctx, w, h);
+  const pad = {l:42, r:24, t:20, b:36};
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+  const yMap = y => pad.t + (2 - y) / 4 * ph;
+  line(ctx, pad.l, yMap(0), w - pad.r, yMap(0), "#d7dbe5", 1.5);
+  line(ctx, pad.l, pad.t, pad.l, h - pad.b, "#d7dbe5", 1.5);
+  for(let y=-2;y<=2;y++){
+    if(y === 0) continue;
+    line(ctx, pad.l, yMap(y), w - pad.r, yMap(y), "#eef0f5", 1);
+  }
+  const step = pw / ks.length;
+  ks.forEach((k, i) => {
+    const cx = pad.l + step * (i + .5);
+    const v = coeffValue(k);
+    const y0 = yMap(0), y1 = yMap(v);
+    ctx.fillStyle = coeffColor(k);
+    ctx.globalAlpha = .9;
+    ctx.fillRect(cx - Math.min(28, step * .28), Math.min(y0, y1), Math.min(56, step * .56), Math.max(2, Math.abs(y1 - y0)));
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = colors.muted;
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(k), cx, h - 14);
+  });
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.muted;
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText("a_k", 12, pad.t + 8);
+  ctx.fillText("k", w - 32, h - 14);
+}
+function drawStaticPlots(){
+  drawWave(currentTheta());
+  drawSpectrum();
+}
+function currentTheta(){
+  return state.omega * (performance.now() - state.start) / 1000;
+}
+function animate(){
+  const theta = currentTheta();
+  $("phaseVal").textContent = (theta % (2 * Math.PI)).toFixed(2);
+  for(const [k, els] of coeffEls) drawMini(els.canvas, k, theta);
+  drawSum(theta);
+  drawWave(theta);
+  state.raf = requestAnimationFrame(animate);
+}
+function updateControlReadouts(){
+  $("omegaVal").textContent = state.omega.toFixed(1);
+  $("periodVal").textContent = (2 * Math.PI / state.omega).toFixed(2);
+  for(const [k, els] of coeffEls){
+    const v = coeffValue(k);
+    els.input.value = String(v);
+    els.value.innerHTML = `a<sub>${k}</sub> = ${v.toFixed(1)}`;
+  }
+}
+function buildCoeffCards(){
+  const grid = $("coeffGrid");
+  grid.innerHTML = "";
+  const layout = [0, 1, -1, 2, -2];
+  for(const k of layout){
+    const card = document.createElement("div");
+    card.className = `coeff-card ${coeffClass(k)} ${coeffGridClass(k)}`;
+    card.innerHTML = `
+      <div class="coeff-head">
+        <div class="coeff-name">${subName(k)}</div>
+        <div class="coeff-tag">${directionLabel(k)}</div>
+      </div>
+      <input type="range" min="-2" max="2" step="0.5" value="${coeffValue(k)}" aria-label="a ${k}" />
+      <div class="coeff-value">a<sub>${k}</sub> = ${coeffValue(k).toFixed(1)}</div>
+      <div class="mini-wrap"><canvas height="126"></canvas></div>
+    `;
+    grid.appendChild(card);
+    const input = card.querySelector("input");
+    const value = card.querySelector(".coeff-value");
+    const canvas = card.querySelector("canvas");
+    coeffEls.set(k, {input, value, canvas});
+    input.addEventListener("input", () => setCoeff(k, input.value));
+  }
+}
+function applyPreset(name){
+  const presets = {
+    zero: {"-2":0, "-1":0, 0:0, 1:0, 2:0},
+    constant: {"-2":0, "-1":0, 0:1, 1:0, 2:0},
+    cosine: {"-2":0, "-1":.5, 0:0, 1:.5, 2:0},
+    strong: {"-2":0, "-1":1, 0:0, 1:1, 2:0},
+    harmonics: {"-2":.5, "-1":1, 0:0, 1:1, 2:.5}
+  };
+  state.activePreset = presets[name] ? name : "zero";
+  setAll(presets[name] || presets.zero);
+  updatePresetButtons();
+}
+function updatePresetButtons(){
+  document.querySelectorAll("[data-preset]").forEach(btn => {
+    const active = btn.dataset.preset === state.activePreset;
+    btn.classList.toggle("active", active);
+    btn.classList.toggle("primary", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+function init(){
+  buildCoeffCards();
+  $("omegaSlider").addEventListener("input", e => {
+    state.omega = Number(e.target.value);
+    updateControlReadouts();
+  });
+  $("realLockToggle").addEventListener("change", e => {
+    state.realLock = e.target.checked;
+    if(state.realLock){
+      state.coeffs.set(-1, coeffValue(1));
+      state.coeffs.set(-2, coeffValue(2));
+    }
+    updateControlReadouts();
+    drawStaticPlots();
+  });
+  document.querySelectorAll("[data-preset]").forEach(btn => {
+    btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+  });
+  $("resetBtn").addEventListener("click", () => applyPreset("zero"));
+  window.addEventListener("resize", () => drawStaticPlots());
+  updateControlReadouts();
+  updatePresetButtons();
+  drawStaticPlots();
+  animate();
+}
+init();
+</script>
+</body>
+</html>

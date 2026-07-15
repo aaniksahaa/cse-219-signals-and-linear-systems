@@ -21,6 +21,7 @@
       { href: "computing-convolution.html", icon: "📐", label: "Computing Convolutions" },
       { href: "listening-to-convolution.html", icon: "🎧", label: "Listening to Convolutions" },
       { group: "Fourier Series" },
+      { href: "fourier-series-builder.html", icon: "∑", label: "Series Builder" },
       { href: "fourier-vibrating-string.html", icon: "〰️", label: "Vibrating String" },
       { href: "fourier-heat-diffusion.html", icon: "🌡️", label: "Heat Diffusion" },
       { href: "fourier-epicycles-1d.html", icon: "🌀", label: "1D Epicycles" },
