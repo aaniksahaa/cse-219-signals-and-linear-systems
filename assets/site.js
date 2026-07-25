@@ -26,6 +26,8 @@
       { href: "fourier-series-builder.html", icon: "∑", label: "Fourier Series Builder" },
       { href: "fourier-epicycles-1d.html", icon: "🌀", label: "1D Epicycles" },
       { href: "fourier-epicycles-2d.html", icon: "✒️", label: "2D Epicycles" },
+      { group: "Fourier Transform" },
+      { href: "fourier-transform-from-series.html", icon: "∿", label: "From Series to Transform" },
       // { group: "Fourier Transform" },
       // { href: "listening-to-frequencies.html", icon: "✂️", label: "Frequency Scissors" },
       // { href: "noise-surgery.html", icon: "🩺", label: "Noise Cancellation" },

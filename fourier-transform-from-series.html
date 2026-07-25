@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fourier Transform from Fourier Series · CSE 219</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="assets/site.css" />
+<script src="assets/site.js" defer></script>
+<style>
+  :root{
+    --violet:#4f46e5;--violet-dark:#3730a3;--violet-soft:#eef2ff;
+    --blue:#2563eb;--cyan:#0891b2;--orange:#ea580c;--green:#059669;
+    --plot:#fbfcff;--radius:16px;
+  }
+  .content{overflow-x:hidden}
+  .lab{width:100%;max-width:1240px;margin:0 auto;padding:30px 22px 80px}
+  .lab-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:22px}
+  .eyebrow{color:var(--violet);font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+  .lab-header h1{font-size:30px;line-height:1.15;letter-spacing:-.03em;margin:0}
+  .lab-header p{color:var(--muted);font-size:14.5px;max-width:760px;margin:8px 0 0}
+  .limit-pill{flex:none;background:linear-gradient(135deg,#eef2ff,#f5f3ff);color:var(--violet-dark);border:1px solid #dcdcff;border-radius:14px;padding:12px 16px;font-size:14px;font-weight:800;white-space:nowrap}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px;min-width:0}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:14px}
+  .card-head h2{font-size:16px;letter-spacing:-.01em;margin:0}
+  .card-head p{font-size:12.8px;color:var(--muted);margin:4px 0 0;max-width:700px}
+  .step{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;padding:0 8px;border-radius:999px;background:var(--violet-soft);color:var(--violet);font-size:11px;font-weight:900;margin-right:7px;vertical-align:2px}
+  .controls{display:grid;grid-template-columns:1.05fr 1fr 1fr 1fr;gap:16px;align-items:end}
+  .field{min-width:0}
+  .field label{display:flex;justify-content:space-between;gap:8px;color:#4b5563;font-size:12px;font-weight:800;margin-bottom:7px}
+  .field output{color:var(--violet);font-variant-numeric:tabular-nums}
+  select{width:100%;border:1px solid #d9dce6;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:13px;font-weight:650;padding:9px 11px;outline:none}
+  select:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px #eef2ff}
+  input[type=range]{width:100%;height:5px;margin:8px 0;accent-color:var(--violet)}
+  .control-bottom{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid var(--line);margin-top:18px;padding-top:16px}
+  .segmented{display:inline-flex;background:#f3f4f8;border:1px solid var(--line);padding:3px;border-radius:11px;gap:2px}
+  .segmented button{border:0;background:transparent;color:#5b6472;font:inherit;font-size:12.5px;font-weight:800;padding:7px 11px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .segmented button.active{background:#fff;color:var(--violet);box-shadow:0 1px 4px rgba(16,24,40,.12)}
+  .actions{display:flex;gap:8px}
+  .btn{border:1px solid #d9dce6;background:#fff;color:#374151;border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+  .btn:hover{background:#fafbff;border-color:#c7cad7}
+  .btn.primary{background:var(--violet);border-color:var(--violet);color:#fff;min-width:88px}
+  .live-metrics{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .metric{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:7px 10px;color:var(--muted);font-size:11.5px}
+  .metric b{color:var(--ink);font-size:12.5px;font-variant-numeric:tabular-nums;margin-left:5px}
+  .plots{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .plot-card{margin:0}
+  .plot-wrap{height:320px;background:var(--plot);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:11px;color:#596273;font-size:11.8px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .key{width:17px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+  .key.faint{background:#a5b4fc}.key.envelope{background:var(--orange)}.key.negative{background:var(--cyan)}
+  .teaching-note{background:#f8fafc;border-left:3px solid var(--violet);border-radius:0 9px 9px 0;color:#566072;font-size:12.8px;line-height:1.5;margin-top:12px;padding:9px 12px}
+  .teaching-note b{color:#303849}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media(max-width:1080px){
+    .controls{grid-template-columns:1fr 1fr}.plots{grid-template-columns:1fr}.plot-wrap{height:300px}
+  }
+  @media(max-width:680px){
+    .lab{padding:22px 14px 60px}.lab-header{display:block}.limit-pill{display:inline-block;margin-top:13px}
+    .lab-header h1{font-size:25px}.card{padding:17px 15px}.controls{grid-template-columns:1fr}
+    .control-bottom{align-items:stretch;flex-direction:column}.segmented{display:grid;grid-template-columns:1fr 1fr 1fr}.segmented button{padding:8px 5px}
+    .actions .btn{flex:1}.plot-wrap{height:270px}
+    .card-head{display:block}.limit-pill{white-space:normal}
+  }
+</style>
+</head>
+<body>
+<div class="site">
+  <aside class="sidebar" id="siteSidebar"></aside>
+  <main class="content">
+    <div class="lab">
+      <header class="lab-header">
+        <div>
+          <div class="eyebrow">Fourier transform · visual bridge</div>
+          <h1>From Fourier Series to Fourier Transform</h1>
+          <p>Keep one pulse fixed and move its periodic copies apart. Watch the discrete Fourier-series frequencies crowd together until they trace a continuous spectrum.</p>
+        </div>
+        <div class="limit-pill">periodic &nbsp;⟶<sup>T → ∞</sup>&nbsp; aperiodic</div>
+      </header>
+
+      <section class="card" aria-labelledby="controlsTitle">
+        <div class="card-head">
+          <div><h2 id="controlsTitle">Experiment controls</h2><p>Period <i>T</i> is the main control. Try Play, then switch between the three spectrum views.</p></div>
+        </div>
+        <div class="controls">
+          <div class="field">
+            <label for="shapeSelect"><span>Pulse shape</span></label>
+            <select id="shapeSelect">
+              <option value="rectangle">Rectangular pulse</option>
+              <option value="triangle">Triangular pulse</option>
+              <option value="raised">Smooth raised-cosine</option>
+              <option value="rippled">Rippled pulse</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="periodSlider"><span>Period T</span><output id="periodOut">6.0</output></label>
+            <input id="periodSlider" type="range" min="3" max="30" step="0.1" value="6" />
+          </div>
+          <div class="field">
+            <label for="widthSlider"><span>Half-width T₁</span><output id="widthOut">1.00</output></label>
+            <input id="widthSlider" type="range" min="0.5" max="1.5" step="0.05" value="1" />
+          </div>
+          <div class="field">
+            <label for="omegaSlider"><span>Frequency window Ω<sub>max</sub></span><output id="omegaOut">8π</output></label>
+            <input id="omegaSlider" type="range" min="4" max="12" step="1" value="8" />
+          </div>
+        </div>
+        <div class="control-bottom">
+          <div class="segmented" id="modeGroup" role="group" aria-label="Spectrum display mode">
+            <button type="button" data-mode="raw">Raw a<sub>k</sub></button>
+            <button type="button" class="active" data-mode="scaled">Scaled Ta<sub>k</sub></button>
+            <button type="button" data-mode="density">Density view</button>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="playBtn" type="button">▶ Play</button>
+            <button class="btn" id="resetBtn" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="live-metrics" aria-live="polite">
+          <div class="metric">fundamental ω₀ = 2π/T <b id="omega0Metric">1.047</b></div>
+          <div class="metric">spacing Δω <b id="spacingMetric">1.047</b></div>
+          <div class="metric">visible samples <b id="sampleMetric">49</b></div>
+        </div>
+      </section>
+
+      <section class="plots">
+        <article class="card plot-card">
+          <div class="card-head">
+            <div><h2><span class="step">1</span>Repeat one pulse</h2><p>x̃<sub>T</sub>(t) = Σ<sub>m</sub> x(t − mT)</p></div>
+          </div>
+          <div class="plot-wrap"><canvas id="timeCanvas" aria-label="Periodic pulse train in the time domain"></canvas></div>
+          <div class="legend"><span><i class="key"></i> central pulse</span><span><i class="key faint"></i> periodic copies</span></div>
+          <div class="teaching-note">Increasing <b>T</b> pushes neighboring copies farther away. Inside this fixed window, the signal starts to look like one isolated pulse.</div>
+        </article>
+
+        <article class="card plot-card">
+          <div class="card-head">
+            <div><h2><span class="step">2–3</span>Discrete samples meet the envelope</h2><p id="spectrumSubtitle">Scaled stems Taₖ = X(jkω₀) sit directly on the transform.</p></div>
+          </div>
+          <div class="plot-wrap"><canvas id="spectrumCanvas" aria-label="Fourier-series coefficient samples and Fourier-transform envelope"></canvas></div>
+          <div class="legend"><span><i class="key envelope"></i> fixed X(jω) envelope</span><span><i class="key"></i> positive samples</span><span><i class="key negative"></i> negative samples</span></div>
+          <div class="teaching-note" id="modeNote"><b>Ta<sub>k</sub></b> is exactly X(jω) sampled at ω = kω₀. As T grows, those sample locations become denser.</div>
+        </article>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const TAU = Math.PI * 2;
+  const COLORS = {ink:"#1c2333",muted:"#6b7280",grid:"#e6e8ef",blue:"#2563eb",blueFill:"rgba(37,99,235,.18)",copy:"#a5b4fc",copyFill:"rgba(165,180,252,.16)",orange:"#ea580c",cyan:"#0891b2",violet:"#4f46e5"};
+  const defaults = {shape:"rectangle",T:6,T1:1,omegaPi:8,mode:"scaled"};
+  const state = {...defaults,playing:false,raf:0,lastTime:0};
+
+  function sinOver(z, span){
+    return Math.abs(z) < 1e-9 ? span : Math.sin(z * span) / z;
+  }
+  const shapes = {
+    rectangle:{
+      time:(t,T1)=>Math.abs(t)<=T1?1:0,
+      transform:(w,T1)=>2*sinOver(w,T1)
+    },
+    triangle:{
+      time:(t,T1)=>Math.abs(t)<=T1?1-Math.abs(t)/T1:0,
+      transform:(w,T1)=>{const q=w*T1/2;return T1*(Math.abs(q)<1e-9?1:Math.sin(q)/q)**2;}
+    },
+    raised:{
+      time:(t,T1)=>(Math.abs(t)<=T1) ? .5*(1+Math.cos(Math.PI*t/T1)) : 0,
+      transform:(w,T1)=>{const a=Math.PI/T1;return sinOver(w,T1)+.5*(sinOver(w-a,T1)+sinOver(w+a,T1));}
+    },
+    rippled:{
+      time:(t,T1)=>Math.abs(t)<=T1?1+.35*Math.cos(3*Math.PI*t/T1):0,
+      transform:(w,T1)=>{const b=3*Math.PI/T1;return 2*sinOver(w,T1)+.35*(sinOver(w-b,T1)+sinOver(w+b,T1));}
+    }
+  };
+  function x(t){return shapes[state.shape].time(t,state.T1);}
+  function X(w){return shapes[state.shape].transform(w,state.T1);}
+  function omega0(){return TAU/state.T;}
+  function omegaMax(){return state.omegaPi*Math.PI;}
+  function kMax(){return Math.floor(omegaMax()/omega0());}
+
+  function setupCanvas(canvas){
+    const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+    const w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));
+    if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+    const ctx=canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {ctx,w,h};
+  }
+  function line(ctx,x1,y1,x2,y2,color=COLORS.grid,width=1,dash=[]){
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([]);
+  }
+  function text(ctx,s,x,y,align="center",color=COLORS.muted,font="11px system-ui"){
+    ctx.fillStyle=color;ctx.font=font;ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(s,x,y);
+  }
+  function axes(ctx,w,h,pad,xMin,xMax,yMin,yMax,xLabel){
+    const px=v=>pad.l+(v-xMin)/(xMax-xMin)*(w-pad.l-pad.r);
+    const py=v=>h-pad.b-(v-yMin)/(yMax-yMin)*(h-pad.t-pad.b);
+    const y0=Math.max(pad.t,Math.min(h-pad.b,py(0))),x0=Math.max(pad.l,Math.min(w-pad.r,px(0)));
+    for(let i=0;i<=4;i++){
+      const yy=pad.t+i*(h-pad.t-pad.b)/4;line(ctx,pad.l,yy,w-pad.r,yy,COLORS.grid,1);
+    }
+    line(ctx,pad.l,y0,w-pad.r,y0,"#aeb4c1",1.2);line(ctx,x0,pad.t,x0,h-pad.b,"#c7cbd5",1);
+    text(ctx,xLabel,w-pad.r,h-11,"right",COLORS.muted,"italic 11px Georgia");
+    return {px,py,y0,x0};
+  }
+  function drawTime(){
+    const {ctx,w,h}=setupCanvas($("timeCanvas"));
+    const p={l:42,r:18,t:18,b:34},xMin=-16,xMax=16,yMin=-.18,yMax=1.55;
+    const a=axes(ctx,w,h,p,xMin,xMax,yMin,yMax,"t");
+    [-12,-8,-4,0,4,8,12].forEach(v=>{line(ctx,a.px(v),a.y0-3,a.px(v),a.y0+3,"#aeb4c1");text(ctx,String(v),a.px(v),h-20);});
+    const mMin=Math.floor((xMin-state.T1)/state.T)-1,mMax=Math.ceil((xMax+state.T1)/state.T)+1;
+    function pulsePath(m,central){
+      const left=m*state.T-state.T1,right=m*state.T+state.T1;if(right<xMin||left>xMax)return;
+      ctx.beginPath();ctx.moveTo(a.px(Math.max(xMin,left)),a.py(0));
+      const n=80;for(let i=0;i<=n;i++){const local=-state.T1+2*state.T1*i/n;ctx.lineTo(a.px(m*state.T+local),a.py(x(local)));}
+      ctx.lineTo(a.px(Math.min(xMax,right)),a.py(0));ctx.closePath();ctx.fillStyle=central?COLORS.blueFill:COLORS.copyFill;ctx.fill();ctx.strokeStyle=central?COLORS.blue:COLORS.copy;ctx.lineWidth=central?2.2:1.5;ctx.stroke();
+    }
+    for(let m=mMin;m<=mMax;m++)if(m!==0)pulsePath(m,false);pulsePath(0,true);
+    const markerY=a.py(1.32),xA=a.px(0),xB=a.px(Math.min(state.T,16));
+    if(state.T<15.3){line(ctx,xA,markerY,xB,markerY,COLORS.violet,1.4);line(ctx,xA,markerY-5,xA,markerY+5,COLORS.violet,1.4);line(ctx,xB,markerY-5,xB,markerY+5,COLORS.violet,1.4);text(ctx,"T",(xA+xB)/2,markerY-10,"center",COLORS.violet,"italic 12px Georgia");}
+    const widthY=a.py(-.1),wl=a.px(-state.T1),wr=a.px(state.T1);line(ctx,wl,widthY,wr,widthY,COLORS.blue,1.3);line(ctx,wl,widthY-4,wl,widthY+4,COLORS.blue);line(ctx,wr,widthY-4,wr,widthY+4,COLORS.blue);text(ctx,"2T₁",(wl+wr)/2,widthY+13,"center",COLORS.blue,"italic 11px Georgia");
+  }
+  function envelopePeak(){
+    let peak=0;const om=omegaMax();for(let i=0;i<=700;i++)peak=Math.max(peak,Math.abs(X(-om+2*om*i/700)));return Math.max(.001,peak);
+  }
+  function drawSpectrum(){
+    const {ctx,w,h}=setupCanvas($("spectrumCanvas"));const om=omegaMax(),peak=envelopePeak();
+    const raw=state.mode==="raw",stemScale=raw?1/state.T:1;
+    const yPeak=peak*1.12,p={l:48,r:18,t:18,b:35};
+    const a=axes(ctx,w,h,p,-om,om,-yPeak,yPeak,"ω");
+    [-1,-.5,0,.5,1].forEach(q=>{const xx=a.px(q*om);if(q!==0)line(ctx,xx,p.t,xx,h-p.b,COLORS.grid);text(ctx,q===0?"0":`${q<0?"−":""}${Math.abs(q)*state.omegaPi}π`,xx,h-20);});
+    ctx.beginPath();for(let i=0;i<=700;i++){const ww=-om+2*om*i/700,xx=a.px(ww),yy=a.py(X(ww));i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);}ctx.strokeStyle=COLORS.orange;ctx.lineWidth=2;ctx.setLineDash(raw?[5,4]:[]);ctx.stroke();ctx.setLineDash([]);
+    const dw=omega0(),km=kMax();
+    if(state.mode==="density"){
+      for(let k=-km;k<=km;k++){const ww=k*dw,v=X(ww),left=a.px(ww-dw/2),right=a.px(ww+dw/2),yy=a.py(v);ctx.fillStyle=(v>=0)?"rgba(37,99,235,.28)":"rgba(8,145,178,.28)";ctx.fillRect(left,Math.min(a.y0,yy),Math.max(1,right-left),Math.abs(yy-a.y0));ctx.strokeStyle=(v>=0)?COLORS.blue:COLORS.cyan;ctx.lineWidth=.7;ctx.strokeRect(left,Math.min(a.y0,yy),Math.max(1,right-left),Math.abs(yy-a.y0));}
+    }else{
+      ctx.lineWidth=1.25;for(let k=-km;k<=km;k++){const ww=k*dw,v=X(ww)*stemScale,xx=a.px(ww),yy=a.py(v);ctx.strokeStyle=(v>=0)?COLORS.blue:COLORS.cyan;ctx.beginPath();ctx.moveTo(xx,a.y0);ctx.lineTo(xx,yy);ctx.stroke();ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.arc(xx,yy,Math.max(1.6,Math.min(3.2,6-dw)),0,TAU);ctx.fill();}
+    }
+    if(dw<om){const y=p.t+11,x1=a.px(0),x2=a.px(dw);line(ctx,x1,y,x2,y,COLORS.violet,1.3);line(ctx,x1,y-3,x1,y+3,COLORS.violet);line(ctx,x2,y-3,x2,y+3,COLORS.violet);text(ctx,"Δω",(x1+x2)/2,y+10,"center",COLORS.violet,"italic 11px Georgia");}
+  }
+  function updateReadouts(){
+    const dw=omega0(),count=2*kMax()+1;
+    $("periodOut").textContent=state.T.toFixed(1);$("widthOut").textContent=state.T1.toFixed(2);$("omegaOut").textContent=`${state.omegaPi}π`;
+    $("omega0Metric").textContent=dw.toFixed(3);$("spacingMetric").textContent=dw.toFixed(3);$("sampleMetric").textContent=String(count);
+    const copy={raw:["Raw coefficients aₖ = X(jkω₀)/T shrink as the period grows.","Raw coefficients shrink because each one represents a thinner frequency slice. This is expected: aₖ = (Δω/2π)X(jkω₀)."],scaled:["Scaled stems Taₖ = X(jkω₀) sit directly on the transform.","Taₖ is exactly X(jω) sampled at ω = kω₀. As T grows, those sample locations become denser."],density:["Each coefficient becomes a frequency bin of width Δω.","Think of aₖ as the amount in one frequency bin. Thinner, denser bins approach the continuous density X(jω)."]}[state.mode];
+    $("spectrumSubtitle").textContent=copy[0];$("modeNote").innerHTML=copy[1].replace("Raw coefficients","<b>Raw coefficients</b>").replace("Taₖ","<b>Ta<sub>k</sub></b>").replace("aₖ","a<sub>k</sub>").replace("X(jω)","X(jω)");
+  }
+  function drawAll(){updateReadouts();drawTime();drawSpectrum();}
+  function stop(){state.playing=false;cancelAnimationFrame(state.raf);state.raf=0;state.lastTime=0;$("playBtn").textContent="▶ Play";}
+  function tick(now){
+    if(!state.playing)return;if(!state.lastTime)state.lastTime=now;const dt=Math.min(.05,(now-state.lastTime)/1000);state.lastTime=now;
+    const min=3,max=30,progress=Math.log(state.T/min)/Math.log(max/min);const next=Math.min(1,progress+dt/9);state.T=min*Math.pow(max/min,next);$("periodSlider").value=state.T;drawAll();if(next>=1){stop();return;}state.raf=requestAnimationFrame(tick);
+  }
+  $("playBtn").addEventListener("click",()=>{if(state.playing){stop();return;}if(state.T>=29.99){state.T=3;$("periodSlider").value=3;}state.playing=true;$("playBtn").textContent="❚❚ Pause";state.raf=requestAnimationFrame(tick);});
+  $("resetBtn").addEventListener("click",()=>{stop();Object.assign(state,defaults);$("shapeSelect").value=state.shape;$("periodSlider").value=state.T;$("widthSlider").value=state.T1;$("omegaSlider").value=state.omegaPi;document.querySelectorAll("#modeGroup button").forEach(b=>b.classList.toggle("active",b.dataset.mode===state.mode));drawAll();});
+  $("shapeSelect").addEventListener("change",e=>{state.shape=e.target.value;drawAll();});
+  $("periodSlider").addEventListener("input",e=>{state.T=Number(e.target.value);drawAll();});
+  $("widthSlider").addEventListener("input",e=>{state.T1=Number(e.target.value);drawAll();});
+  $("omegaSlider").addEventListener("input",e=>{state.omegaPi=Number(e.target.value);drawAll();});
+  $("modeGroup").addEventListener("click",e=>{const b=e.target.closest("button[data-mode]");if(!b)return;state.mode=b.dataset.mode;document.querySelectorAll("#modeGroup button").forEach(x=>x.classList.toggle("active",x===b));drawAll();});
+  let resizeTimer;window.addEventListener("resize",()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(drawAll,80);});
+  drawAll();
+})();
+</script>
+</body>
+</html>
