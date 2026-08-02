@@ -35,10 +35,8 @@
   .btn:hover{border-color:#cdd2e0;background:#fafbff}
   .btn:active{transform:translateY(1px)}
   .btn.primary,.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-  /* Sound feature disabled for now.
   .btn.small{padding:7px 10px;border-radius:9px;font-size:12.5px}
   .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
-  */
   .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer;user-select:none}
   .toggle input{accent-color:var(--accent)}
   .equation{font-size:15px;color:#374151;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-wrap:anywhere}
@@ -46,10 +44,8 @@
   .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}
   .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
   .hint{font-size:13px;color:var(--muted);margin:12px 2px 0}
-  /* Sound feature disabled for now.
   .audio-status{font-size:13px;color:#374151;font-weight:700;min-height:20px}
   .audio-status.muted{color:var(--muted);font-weight:600}
-  */
   .coeff-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch}
   .coeff-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:15px;min-width:0;overflow:hidden}
   .coeff-card.k0{grid-column:2 / span 2}
@@ -62,10 +58,8 @@
   .coeff-name{font-size:18px;font-weight:800;letter-spacing:-.01em}
   .coeff-tag{font-size:11.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-align:right}
   .coeff-value{font-size:13px;color:#374151;font-weight:800;font-variant-numeric:tabular-nums;margin-top:8px}
-  /* Sound feature disabled for now.
   .coeff-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
   .coeff-audio-note{font-size:12.5px;color:var(--muted);font-weight:700}
-  */
   .coeff-card input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
   .mini-wrap{height:126px;border:1px solid var(--line);border-radius:10px;background:#fbfcff;margin-top:12px;overflow:hidden}
   canvas{display:block;width:100%;touch-action:none}
@@ -151,7 +145,6 @@
       <div class="coeff-grid" id="coeffGrid"></div>
     </section>
 
-    <!-- Sound feature disabled for now.
     <section class="card">
       <h2>Listen to the series</h2>
       <div class="grid3">
@@ -175,7 +168,6 @@
         </div>
       </div>
     </section>
-    -->
 
     <section class="grid2">
       <div class="card">
@@ -214,8 +206,7 @@ const $ = id => document.getElementById(id);
 const ks = [-2, -1, 0, 1, 2];
 const order = [-2, -1, 0, 1, 2];
 const TIME_WINDOW = 4 * Math.PI;
-// Sound feature disabled for now.
-// const AUDIO_HZ_PER_OMEGA = 110;
+const AUDIO_HZ_PER_OMEGA = 110;
 const colors = {
   pos: "#059669",
   neg: "#ea580c",
@@ -235,7 +226,6 @@ const state = {
   raf: null
 };
 const coeffEls = new Map();
-/* Sound feature disabled for now.
 const audioState = {
   ctx: null,
   master: null,
@@ -243,7 +233,6 @@ const audioState = {
   active: null,
   volume: .35
 };
-*/
 
 function coeffColor(k){
   return k > 0 ? colors.pos : k < 0 ? colors.neg : colors.zero;
@@ -273,8 +262,7 @@ function setCoeff(k, value, syncMirror = true){
   updateControlReadouts();
   updatePresetButtons();
   drawStaticPlots();
-  // Sound feature disabled for now.
-  // refreshActiveAudio();
+  refreshActiveAudio();
 }
 function setAll(values){
   for(const k of ks) state.coeffs.set(k, values[k] || 0);
@@ -284,8 +272,7 @@ function setAll(values){
   }
   updateControlReadouts();
   drawStaticPlots();
-  // Sound feature disabled for now.
-  // refreshActiveAudio();
+  refreshActiveAudio();
 }
 function valueAt(theta){
   let re = 0, im = 0;
@@ -302,7 +289,6 @@ function termsAt(theta){
     return {k, re: a * Math.cos(k * theta), im: a * Math.sin(k * theta)};
   });
 }
-/* Sound feature disabled for now.
 function audioBaseHz(){
   return AUDIO_HZ_PER_OMEGA * state.omega;
 }
@@ -421,7 +407,6 @@ function refreshActiveAudio(){
   if(active.type === "term") playTerm(active.k);
   else playTotal();
 }
-*/
 function setupCanvas(canvas){
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -628,23 +613,18 @@ function animate(){
 function updateControlReadouts(){
   $("omegaVal").textContent = state.omega.toFixed(1);
   $("periodVal").textContent = (2 * Math.PI / state.omega).toFixed(2);
-  // Sound feature disabled for now.
-  // $("audioF0Val").textContent = `${Math.round(audioBaseHz())} Hz`;
-  // $("volumeVal").textContent = `${Math.round(audioState.volume * 100)}%`;
+  $("audioF0Val").textContent = `${Math.round(audioBaseHz())} Hz`;
+  $("volumeVal").textContent = `${Math.round(audioState.volume * 100)}%`;
   for(const [k, els] of coeffEls){
     const v = coeffValue(k);
     els.input.value = String(v);
     els.value.innerHTML = `a<sub>${k}</sub> = ${v.toFixed(1)}`;
-    /*
-    Sound feature disabled for now.
     if(els.audioBtn){
       els.audioBtn.disabled = k !== 0 && Math.abs(v) < 1e-6;
       els.note.textContent = k === 0 ? "DC: no pitch" : `${Math.round(Math.abs(k) * audioBaseHz())} Hz`;
     }
-    */
   }
-  // Sound feature disabled for now.
-  // setAudioButtons();
+  setAudioButtons();
 }
 function buildCoeffCards(){
   const grid = $("coeffGrid");
@@ -660,25 +640,21 @@ function buildCoeffCards(){
       </div>
       <input type="range" min="-2" max="2" step="0.5" value="${coeffValue(k)}" aria-label="a ${k}" />
       <div class="coeff-value">a<sub>${k}</sub> = ${coeffValue(k).toFixed(1)}</div>
-      <!-- Sound feature disabled for now.
       <div class="coeff-actions">
         <button class="btn small" data-play-term="${k}" type="button">${k === 0 ? "DC note" : "▶ Play term"}</button>
         <span class="coeff-audio-note"></span>
       </div>
-      -->
       <div class="mini-wrap"><canvas height="126"></canvas></div>
     `;
     grid.appendChild(card);
     const input = card.querySelector("input");
     const value = card.querySelector(".coeff-value");
     const canvas = card.querySelector("canvas");
-    // Sound feature disabled for now.
-    // const audioBtn = card.querySelector("[data-play-term]");
-    // const note = card.querySelector(".coeff-audio-note");
-    coeffEls.set(k, {input, value, canvas});
+    const audioBtn = card.querySelector("[data-play-term]");
+    const note = card.querySelector(".coeff-audio-note");
+    coeffEls.set(k, {input, value, canvas, audioBtn, note});
     input.addEventListener("input", () => setCoeff(k, input.value));
-    // Sound feature disabled for now.
-    // audioBtn.addEventListener("click", () => playTerm(k));
+    audioBtn.addEventListener("click", () => playTerm(k));
   }
 }
 function applyPreset(name){
@@ -708,17 +684,13 @@ function init(){
     state.omega = Number(e.target.value);
     updateControlReadouts();
     drawStaticPlots();
-    // Sound feature disabled for now.
-    // refreshActiveAudio();
+    refreshActiveAudio();
   });
-  /*
-  Sound feature disabled for now.
   $("volumeSlider").addEventListener("input", e => {
     audioState.volume = Number(e.target.value) / 100;
     if(audioState.master) audioState.master.gain.value = audioState.volume;
     updateControlReadouts();
   });
-  */
   $("realLockToggle").addEventListener("change", e => {
     state.realLock = e.target.checked;
     if(state.realLock){
@@ -727,14 +699,10 @@ function init(){
     }
     updateControlReadouts();
     drawStaticPlots();
-    // Sound feature disabled for now.
-    // refreshActiveAudio();
+    refreshActiveAudio();
   });
-  /*
-  Sound feature disabled for now.
   $("playTotalBtn").addEventListener("click", playTotal);
   $("stopAudioBtn").addEventListener("click", () => stopAudio());
-  */
   document.querySelectorAll("[data-preset]").forEach(btn => {
     btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
   });
